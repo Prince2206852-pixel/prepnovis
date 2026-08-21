@@ -4,3 +4,7 @@ spring:
 
   profiles:
     active: local
+
+jwt:
+  secret: "prepnovis-super-secret-key-for-jwt-authentication-2026-this-key-is-long-enough"
+  expiration: 86400000  
