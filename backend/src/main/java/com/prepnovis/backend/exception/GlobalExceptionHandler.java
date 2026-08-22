@@ -75,4 +75,20 @@ public ResponseEntity<ExceptionResponse> handleQuestionNotFoundException(
     return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
 }
 
+@ExceptionHandler(IllegalArgumentException.class)
+public ResponseEntity<ExceptionResponse> handleIllegalArgumentException(
+        IllegalArgumentException ex) {
+
+    ExceptionResponse response = new ExceptionResponse();
+    response.setTimestamp(LocalDateTime.now());
+    response.setStatus(HttpStatus.BAD_REQUEST.value());
+    response.setError(HttpStatus.BAD_REQUEST.getReasonPhrase());
+    response.setMessage(ex.getMessage());
+
+    return new ResponseEntity<>(
+            response,
+            HttpStatus.BAD_REQUEST
+    );
+}
+
 }
