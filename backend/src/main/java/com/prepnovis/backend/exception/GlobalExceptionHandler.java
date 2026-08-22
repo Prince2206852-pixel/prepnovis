@@ -62,4 +62,17 @@ public ResponseEntity<ExceptionResponse> handleUserNotFoundException(
     return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
 }
 
+@ExceptionHandler(QuestionNotFoundException.class)
+public ResponseEntity<ExceptionResponse> handleQuestionNotFoundException(
+        QuestionNotFoundException ex) {
+
+    ExceptionResponse response = new ExceptionResponse();
+    response.setTimestamp(LocalDateTime.now());
+    response.setStatus(HttpStatus.NOT_FOUND.value());
+    response.setError(HttpStatus.NOT_FOUND.getReasonPhrase());
+    response.setMessage(ex.getMessage());
+
+    return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+}
+
 }
