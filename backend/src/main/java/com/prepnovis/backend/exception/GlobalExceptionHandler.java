@@ -91,4 +91,55 @@ public ResponseEntity<ExceptionResponse> handleIllegalArgumentException(
     );
 }
 
+@ExceptionHandler(PracticeSessionNotFoundException.class)
+public ResponseEntity<ExceptionResponse> handlePracticeSessionNotFoundException(
+        PracticeSessionNotFoundException ex) {
+
+    ExceptionResponse response = new ExceptionResponse();
+    response.setTimestamp(LocalDateTime.now());
+    response.setStatus(HttpStatus.NOT_FOUND.value());
+    response.setError(HttpStatus.NOT_FOUND.getReasonPhrase());
+    response.setMessage(ex.getMessage());
+
+    return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+}
+
+@ExceptionHandler(PracticeSessionQuestionNotFoundException.class)
+public ResponseEntity<ExceptionResponse> handlePracticeSessionQuestionNotFoundException(
+        PracticeSessionQuestionNotFoundException ex) {
+
+    ExceptionResponse response = new ExceptionResponse();
+    response.setTimestamp(LocalDateTime.now());
+    response.setStatus(HttpStatus.NOT_FOUND.value());
+    response.setError(HttpStatus.NOT_FOUND.getReasonPhrase());
+    response.setMessage(ex.getMessage());
+
+    return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+}
+
+@ExceptionHandler(PracticeSessionAccessDeniedException.class)
+public ResponseEntity<ExceptionResponse> handlePracticeSessionAccessDeniedException(
+        PracticeSessionAccessDeniedException ex) {
+
+    ExceptionResponse response = new ExceptionResponse();
+    response.setTimestamp(LocalDateTime.now());
+    response.setStatus(HttpStatus.FORBIDDEN.value());
+    response.setError(HttpStatus.FORBIDDEN.getReasonPhrase());
+    response.setMessage(ex.getMessage());
+
+    return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
+}
+@ExceptionHandler(InvalidPracticeSessionQuestionException.class)
+public ResponseEntity<ExceptionResponse> handleInvalidPracticeSessionQuestionException(
+        InvalidPracticeSessionQuestionException ex) {
+
+    ExceptionResponse response = new ExceptionResponse();
+    response.setTimestamp(LocalDateTime.now());
+    response.setStatus(HttpStatus.BAD_REQUEST.value());
+    response.setError(HttpStatus.BAD_REQUEST.getReasonPhrase());
+    response.setMessage(ex.getMessage());
+
+    return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+}
+
 }
