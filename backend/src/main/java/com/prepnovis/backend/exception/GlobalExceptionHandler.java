@@ -142,4 +142,17 @@ public ResponseEntity<ExceptionResponse> handleInvalidPracticeSessionQuestionExc
     return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
 }
 
+@ExceptionHandler(InvalidPracticeSessionStateException.class)
+public ResponseEntity<ExceptionResponse> handleInvalidPracticeSessionStateException(
+        InvalidPracticeSessionStateException ex) {
+
+    ExceptionResponse response = new ExceptionResponse();
+    response.setTimestamp(LocalDateTime.now());
+    response.setStatus(HttpStatus.BAD_REQUEST.value());
+    response.setError(HttpStatus.BAD_REQUEST.getReasonPhrase());
+    response.setMessage(ex.getMessage());
+
+    return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+}
+
 }

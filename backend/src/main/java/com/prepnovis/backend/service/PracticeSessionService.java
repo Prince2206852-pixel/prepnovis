@@ -7,6 +7,8 @@ import com.prepnovis.backend.dto.request.SubmitPracticeAnswerRequest;
 import com.prepnovis.backend.dto.response.PracticeSessionDetailResponse;
 import com.prepnovis.backend.dto.response.PracticeSessionQuestionResponse;
 import com.prepnovis.backend.dto.response.PracticeSessionResponse;
+import com.prepnovis.backend.dto.response.PracticeSessionResultResponse;
+
 
 public interface PracticeSessionService {
 
@@ -23,4 +25,12 @@ public interface PracticeSessionService {
         UUID sessionId,
         UUID sessionQuestionId,
         SubmitPracticeAnswerRequest request);
+
+        PracticeSessionResultResponse completeSession(
+        String email,
+        UUID sessionId);
+
+        PracticeSessionResultResponse getSessionResult(
+        String email,
+        UUID sessionId);
 }

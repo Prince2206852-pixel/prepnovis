@@ -1,5 +1,7 @@
 package com.prepnovis.backend.entity;
 
+import java.time.LocalDateTime;
+
 import com.prepnovis.backend.common.BaseEntity;
 import com.prepnovis.backend.entity.enums.DifficultyLevel;
 import com.prepnovis.backend.entity.enums.PracticeSessionStatus;
@@ -13,6 +15,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+
 
 @Entity
 @Table(name = "practice_sessions")
@@ -42,6 +45,7 @@ public class PracticeSession extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PracticeSessionStatus status;
+    private LocalDateTime completedAt;
 
     public User getUser() {
         return user;
@@ -98,4 +102,14 @@ public class PracticeSession extends BaseEntity {
     public void setStatus(PracticeSessionStatus status) {
         this.status = status;
     }
+
+    public LocalDateTime getCompletedAt() {
+    return completedAt;
+    }
+
+    public void setCompletedAt(LocalDateTime completedAt) {
+    this.completedAt = completedAt;
+    }
+
+    
 }

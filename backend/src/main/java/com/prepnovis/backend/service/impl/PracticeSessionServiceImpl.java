@@ -1,5 +1,6 @@
 package com.prepnovis.backend.service.impl;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -10,12 +11,14 @@ import com.prepnovis.backend.dto.request.SubmitPracticeAnswerRequest;
 import com.prepnovis.backend.dto.response.PracticeSessionDetailResponse;
 import com.prepnovis.backend.dto.response.PracticeSessionQuestionResponse;
 import com.prepnovis.backend.dto.response.PracticeSessionResponse;
+import com.prepnovis.backend.dto.response.PracticeSessionResultResponse;
 import com.prepnovis.backend.entity.PracticeSession;
 import com.prepnovis.backend.entity.PracticeSessionQuestion;
 import com.prepnovis.backend.entity.Question;
 import com.prepnovis.backend.entity.User;
 import com.prepnovis.backend.entity.enums.PracticeSessionStatus;
 import com.prepnovis.backend.exception.InvalidPracticeSessionQuestionException;
+import com.prepnovis.backend.exception.InvalidPracticeSessionStateException;
 import com.prepnovis.backend.exception.PracticeSessionAccessDeniedException;
 import com.prepnovis.backend.exception.PracticeSessionNotFoundException;
 import com.prepnovis.backend.exception.PracticeSessionQuestionNotFoundException;
@@ -263,6 +266,158 @@ public PracticeSessionQuestionResponse submitAnswer(
     response.setUserAnswer(savedQuestion.getUserAnswer());
     response.setScore(savedQuestion.getScore());
     response.setFeedback(savedQuestion.getFeedback());
+
+    return response;
+}
+
+@Override
+public PracticeSessionResultResponse completeSession(
+        String email,
+        UUID sessionId) {
+
+    // Step 1: Find session
+    PracticeSession session =
+            practiceSessionRepository.findById(sessionId)
+                    .orElseThrow(() ->
+                            new PracticeSessionNotFoundException(
+                                    "Practice session not found."
+                            )
+                    );
+
+    // Step 2: Verify ownership
+    if (!session.getUser().getEmail().equals(email)) {
+        throw new PracticeSessionAccessDeniedException(
+                "You are not allowed to access this session."
+        );
+    }
+
+    if (session.getStatus() == PracticeSessionStatus.COMPLETED) {
+    throw new InvalidPracticeSessionStateException(
+            "Practice session is already completed."
+    );
+}
+
+    // Step 3: Get assigned questions
+    List<PracticeSessionQuestion> sessionQuestions =
+            practiceSessionQuestionRepository
+                    .findByPracticeSessionId(sessionId);
+
+    int assignedQuestions = sessionQuestions.size();
+
+    int answeredQuestions = (int) sessionQuestions.stream()
+            .filter(question -> Boolean.TRUE.equals(question.getAnswered()))
+            .count();
+
+    int unansweredQuestions =
+            assignedQuestions - answeredQuestions;
+
+    // Step 4: Calculate average score only from scored questions
+    List<Double> scores = sessionQuestions.stream()
+            .map(PracticeSessionQuestion::getScore)
+            .filter(score -> score != null)
+            .toList();
+
+    Double averageScore = null;
+
+    if (!scores.isEmpty()) {
+        averageScore = scores.stream()
+                .mapToDouble(Double::doubleValue)
+                .average()
+                .orElse(0.0);
+    }
+
+    // Step 5: Complete session
+    session.setStatus(PracticeSessionStatus.COMPLETED);
+    session.setCompletedAt(LocalDateTime.now());
+
+    PracticeSession completedSession =
+            practiceSessionRepository.save(session);
+
+    // Step 6: Prepare result
+    PracticeSessionResultResponse response =
+            new PracticeSessionResultResponse();
+
+    response.setSessionId(completedSession.getId());
+    response.setTotalQuestions(completedSession.getTotalQuestions());
+    response.setAssignedQuestions(assignedQuestions);
+    response.setAnsweredQuestions(answeredQuestions);
+    response.setUnansweredQuestions(unansweredQuestions);
+    response.setAverageScore(averageScore);
+    response.setStatus(completedSession.getStatus());
+    response.setCompletedAt(completedSession.getCompletedAt());
+
+    return response;
+}
+
+@Override
+public PracticeSessionResultResponse getSessionResult(
+        String email,
+        UUID sessionId) {
+
+    // Step 1: Find session
+    PracticeSession session =
+            practiceSessionRepository.findById(sessionId)
+                    .orElseThrow(() ->
+                            new PracticeSessionNotFoundException(
+                                    "Practice session not found."
+                            )
+                    );
+
+    // Step 2: Verify ownership
+    if (!session.getUser().getEmail().equals(email)) {
+        throw new PracticeSessionAccessDeniedException(
+                "You are not allowed to access this session."
+        );
+    }
+
+    if (session.getStatus() != PracticeSessionStatus.COMPLETED) {
+    throw new InvalidPracticeSessionStateException(
+            "Practice session is not completed yet."
+    );
+}
+
+    // Step 3: Get assigned questions
+    List<PracticeSessionQuestion> sessionQuestions =
+            practiceSessionQuestionRepository
+                    .findByPracticeSessionId(sessionId);
+
+    int assignedQuestions = sessionQuestions.size();
+
+    int answeredQuestions = (int) sessionQuestions.stream()
+            .filter(question ->
+                    Boolean.TRUE.equals(question.getAnswered()))
+            .count();
+
+    int unansweredQuestions =
+            assignedQuestions - answeredQuestions;
+
+    // Step 4: Calculate score if scores exist
+    List<Double> scores = sessionQuestions.stream()
+            .map(PracticeSessionQuestion::getScore)
+            .filter(score -> score != null)
+            .toList();
+
+    Double averageScore = null;
+
+    if (!scores.isEmpty()) {
+        averageScore = scores.stream()
+                .mapToDouble(Double::doubleValue)
+                .average()
+                .orElse(0.0);
+    }
+
+    // Step 5: Prepare response
+    PracticeSessionResultResponse response =
+            new PracticeSessionResultResponse();
+
+    response.setSessionId(session.getId());
+    response.setTotalQuestions(session.getTotalQuestions());
+    response.setAssignedQuestions(assignedQuestions);
+    response.setAnsweredQuestions(answeredQuestions);
+    response.setUnansweredQuestions(unansweredQuestions);
+    response.setAverageScore(averageScore);
+    response.setStatus(session.getStatus());
+    response.setCompletedAt(session.getCompletedAt());
 
     return response;
 }

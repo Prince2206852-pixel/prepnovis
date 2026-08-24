@@ -17,9 +17,12 @@ import com.prepnovis.backend.dto.request.SubmitPracticeAnswerRequest;
 import com.prepnovis.backend.dto.response.PracticeSessionDetailResponse;
 import com.prepnovis.backend.dto.response.PracticeSessionQuestionResponse;
 import com.prepnovis.backend.dto.response.PracticeSessionResponse;
+import com.prepnovis.backend.dto.response.PracticeSessionResultResponse;
 import com.prepnovis.backend.service.PracticeSessionService;
 
 import jakarta.validation.Valid;
+
+
 
 @RestController
 @RequestMapping("/api/v1/practice-sessions")
@@ -79,6 +82,38 @@ public ResponseEntity<PracticeSessionQuestionResponse> submitAnswer(
                     sessionId,
                     sessionQuestionId,
                     request
+            );
+
+    return ResponseEntity.ok(response);
+}
+
+@PostMapping("/{sessionId}/complete")
+public ResponseEntity<PracticeSessionResultResponse> completeSession(
+        @PathVariable UUID sessionId,
+        Principal principal) {
+
+    String email = principal.getName();
+
+    PracticeSessionResultResponse response =
+            practiceSessionService.completeSession(
+                    email,
+                    sessionId
+            );
+
+    return ResponseEntity.ok(response);
+}
+
+@GetMapping("/{sessionId}/result")
+public ResponseEntity<PracticeSessionResultResponse> getSessionResult(
+        @PathVariable UUID sessionId,
+        Principal principal) {
+
+    String email = principal.getName();
+
+    PracticeSessionResultResponse response =
+            practiceSessionService.getSessionResult(
+                    email,
+                    sessionId
             );
 
     return ResponseEntity.ok(response);
