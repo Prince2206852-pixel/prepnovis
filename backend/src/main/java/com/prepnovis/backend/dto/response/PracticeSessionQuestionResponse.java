@@ -15,6 +15,8 @@ public class PracticeSessionQuestionResponse {
     private String userAnswer;
     private Double score;
     private String feedback;
+    private String strengths;
+    private String improvements;
 
     public PracticeSessionQuestionResponse() {
     }
@@ -106,4 +108,20 @@ public class PracticeSessionQuestionResponse {
     public void setFeedback(String feedback) {
         this.feedback = feedback;
     }
+    public String getStrengths() {
+    return strengths;
+}
+
+public void setStrengths(String strengths) {
+    this.strengths = strengths;
+}
+
+public String getImprovements() {
+    return improvements;
+}
+
+public void setImprovements(String improvements) {
+    this.improvements = improvements;
+}
+
 }

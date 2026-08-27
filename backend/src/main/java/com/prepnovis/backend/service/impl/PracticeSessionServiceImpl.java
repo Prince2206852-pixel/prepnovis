@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import com.prepnovis.backend.dto.request.StartPracticeSessionRequest;
 import com.prepnovis.backend.dto.request.SubmitPracticeAnswerRequest;
+import com.prepnovis.backend.dto.response.AnswerEvaluationResult;
 import com.prepnovis.backend.dto.response.PracticeSessionDetailResponse;
 import com.prepnovis.backend.dto.response.PracticeSessionQuestionResponse;
 import com.prepnovis.backend.dto.response.PracticeSessionResponse;
@@ -27,6 +28,7 @@ import com.prepnovis.backend.repository.PracticeSessionQuestionRepository;
 import com.prepnovis.backend.repository.PracticeSessionRepository;
 import com.prepnovis.backend.repository.QuestionRepository;
 import com.prepnovis.backend.repository.UserRepository;
+import com.prepnovis.backend.service.AnswerEvaluationService;
 import com.prepnovis.backend.service.PracticeSessionService;
 
 @Service
@@ -36,18 +38,22 @@ public class PracticeSessionServiceImpl implements PracticeSessionService {
     private final UserRepository userRepository;
     private final QuestionRepository questionRepository;
     private final PracticeSessionQuestionRepository practiceSessionQuestionRepository;
+    private final AnswerEvaluationService answerEvaluationService;
 
     public PracticeSessionServiceImpl(
         PracticeSessionRepository practiceSessionRepository,
         UserRepository userRepository,
         QuestionRepository questionRepository,
-        PracticeSessionQuestionRepository practiceSessionQuestionRepository) {
+        PracticeSessionQuestionRepository practiceSessionQuestionRepository,
+        AnswerEvaluationService answerEvaluationService) {
+        
 
     this.practiceSessionRepository = practiceSessionRepository;
     this.userRepository = userRepository;
     this.questionRepository = questionRepository;
     this.practiceSessionQuestionRepository = practiceSessionQuestionRepository;
-}
+    this.answerEvaluationService = answerEvaluationService;
+}   
 
     @Override
 public PracticeSessionResponse startSession(
@@ -181,6 +187,13 @@ public PracticeSessionDetailResponse getSessionDetails(
                                 sessionQuestion.getFeedback()
                         );
 
+                        response.setStrengths(
+                                sessionQuestion.getStrengths()
+                        );
+                        response.setImprovements(
+                                sessionQuestion.getImprovements()
+                        );
+
                         return response;
                     })
                     .toList();
@@ -221,6 +234,12 @@ public PracticeSessionQuestionResponse submitAnswer(
             );
     }
 
+    if (session.getStatus() == PracticeSessionStatus.COMPLETED) {
+    throw new InvalidPracticeSessionStateException(
+            "Practice session is already completed."
+    );
+}
+
     // Step 3: Find session question
     PracticeSessionQuestion sessionQuestion =
             practiceSessionQuestionRepository
@@ -238,12 +257,37 @@ public PracticeSessionQuestionResponse submitAnswer(
         throw new InvalidPracticeSessionQuestionException("Question does not belong to this practice session.");
     }
 
-    // Step 5: Save user's answer
-    sessionQuestion.setUserAnswer(request.getAnswer());
-    sessionQuestion.setAnswered(true);
+    if (Boolean.TRUE.equals(sessionQuestion.getAnswered())) {
+    throw new InvalidPracticeSessionStateException(
+            "This question has already been answered."
+    );
+}
 
-    PracticeSessionQuestion savedQuestion =
-            practiceSessionQuestionRepository.save(sessionQuestion);
+    // Step 5: Save user's answer
+   sessionQuestion.setUserAnswer(request.getAnswer());
+   sessionQuestion.setAnswered(true);
+
+// Evaluate submitted answer
+    AnswerEvaluationResult evaluation =
+        answerEvaluationService.evaluateAnswer(
+                sessionQuestion.getQuestion(),
+                request.getAnswer()
+        );
+
+// Save evaluation
+sessionQuestion.setScore(evaluation.getScore());
+sessionQuestion.setFeedback(evaluation.getFeedback());
+sessionQuestion.setStrengths(
+        String.join(" | ", evaluation.getStrengths())
+);
+
+sessionQuestion.setImprovements(
+        String.join(" | ", evaluation.getImprovements())
+);
+
+
+PracticeSessionQuestion savedQuestion =
+        practiceSessionQuestionRepository.save(sessionQuestion);
 
     // Step 6: Prepare response
     Question question = savedQuestion.getQuestion();
@@ -266,6 +310,13 @@ public PracticeSessionQuestionResponse submitAnswer(
     response.setUserAnswer(savedQuestion.getUserAnswer());
     response.setScore(savedQuestion.getScore());
     response.setFeedback(savedQuestion.getFeedback());
+
+    response.setStrengths(
+        savedQuestion.getStrengths()
+    );
+    response.setImprovements(
+        savedQuestion.getImprovements()
+    );
 
     return response;
 }

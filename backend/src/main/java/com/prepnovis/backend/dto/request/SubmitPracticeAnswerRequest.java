@@ -7,7 +7,7 @@ public class SubmitPracticeAnswerRequest {
 
     @NotBlank(message = "Answer is required")
     @Size(max = 10000, message = "Answer must not exceed 10000 characters")
-    private String answer;
+    @NotBlank private String answer;
 
     public SubmitPracticeAnswerRequest() {
     }

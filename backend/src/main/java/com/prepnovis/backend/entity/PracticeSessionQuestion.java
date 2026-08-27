@@ -32,6 +32,13 @@ public class PracticeSessionQuestion extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String feedback;
 
+    @Column(columnDefinition = "TEXT")
+    private String strengths;
+
+    @Column(columnDefinition = "TEXT")
+    private String improvements;
+
+
     public PracticeSession getPracticeSession() {
         return practiceSession;
     }
@@ -78,5 +85,21 @@ public class PracticeSessionQuestion extends BaseEntity {
 
     public void setFeedback(String feedback) {
         this.feedback = feedback;
+    }
+
+    public String getStrengths() {
+        return strengths;
+    }
+
+    public void setStrengths(String strengths) {
+        this.strengths = strengths;
+    }
+
+    public String getImprovements() {
+        return improvements;
+    }
+
+    public void setImprovements(String improvements) {
+        this.improvements = improvements;
     }
 }
