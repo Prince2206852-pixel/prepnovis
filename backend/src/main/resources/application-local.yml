@@ -5,8 +5,6 @@ spring:
     password: postgres
     driver-class-name: org.postgresql.Driver
 
-
-
   jpa:
     hibernate:
       ddl-auto: update
@@ -21,5 +19,7 @@ spring:
     init:
       mode: always
 
-     
-  
+gemini:
+  api-key: ${GEMINI_API_KEY}
+  model: gemini-3.5-flash
+  base-url: https://generativelanguage.googleapis.com/v1beta

@@ -1,9 +1,10 @@
 package com.prepnovis.backend.config;
 
-import com.prepnovis.backend.entity.Role;
-import com.prepnovis.backend.repository.RoleRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
+
+import com.prepnovis.backend.entity.Role;
+import com.prepnovis.backend.repository.RoleRepository;
 
 @Component
 public class DataInitializer implements CommandLineRunner {
