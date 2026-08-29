@@ -17,6 +17,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 
+
 @Entity
 @Table(name = "practice_sessions")
 public class PracticeSession extends BaseEntity {
@@ -46,6 +47,10 @@ public class PracticeSession extends BaseEntity {
     @Column(nullable = false)
     private PracticeSessionStatus status;
     private LocalDateTime completedAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private QuestionSource questionSource;
 
     public User getUser() {
         return user;
@@ -109,6 +114,14 @@ public class PracticeSession extends BaseEntity {
 
     public void setCompletedAt(LocalDateTime completedAt) {
     this.completedAt = completedAt;
+    }
+
+    public QuestionSource getQuestionSource() {
+    return questionSource;
+    }
+
+    public void setQuestionSource(QuestionSource questionSource) {
+    this.questionSource = questionSource;
     }
 
     

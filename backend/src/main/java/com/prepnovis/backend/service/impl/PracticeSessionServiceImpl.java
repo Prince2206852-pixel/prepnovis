@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import com.prepnovis.backend.dto.request.StartPracticeSessionRequest;
 import com.prepnovis.backend.dto.request.SubmitPracticeAnswerRequest;
 import com.prepnovis.backend.dto.response.AnswerEvaluationResult;
+import com.prepnovis.backend.dto.response.GeneratedMockQuestion;
 import com.prepnovis.backend.dto.response.PracticeSessionDetailResponse;
 import com.prepnovis.backend.dto.response.PracticeSessionQuestionResponse;
 import com.prepnovis.backend.dto.response.PracticeSessionResponse;
@@ -16,6 +17,7 @@ import com.prepnovis.backend.dto.response.PracticeSessionResultResponse;
 import com.prepnovis.backend.entity.PracticeSession;
 import com.prepnovis.backend.entity.PracticeSessionQuestion;
 import com.prepnovis.backend.entity.Question;
+import com.prepnovis.backend.entity.QuestionSource;
 import com.prepnovis.backend.entity.User;
 import com.prepnovis.backend.entity.enums.PracticeSessionStatus;
 import com.prepnovis.backend.exception.InvalidPracticeSessionQuestionException;
@@ -29,7 +31,9 @@ import com.prepnovis.backend.repository.PracticeSessionRepository;
 import com.prepnovis.backend.repository.QuestionRepository;
 import com.prepnovis.backend.repository.UserRepository;
 import com.prepnovis.backend.service.AnswerEvaluationService;
+import com.prepnovis.backend.service.MockQuestionGenerationService;
 import com.prepnovis.backend.service.PracticeSessionService;
+
 
 @Service
 public class PracticeSessionServiceImpl implements PracticeSessionService {
@@ -39,21 +43,23 @@ public class PracticeSessionServiceImpl implements PracticeSessionService {
     private final QuestionRepository questionRepository;
     private final PracticeSessionQuestionRepository practiceSessionQuestionRepository;
     private final AnswerEvaluationService answerEvaluationService;
+    private final MockQuestionGenerationService mockQuestionGenerationService;
 
     public PracticeSessionServiceImpl(
         PracticeSessionRepository practiceSessionRepository,
         UserRepository userRepository,
         QuestionRepository questionRepository,
         PracticeSessionQuestionRepository practiceSessionQuestionRepository,
-        AnswerEvaluationService answerEvaluationService) {
-        
+        AnswerEvaluationService answerEvaluationService,
+        MockQuestionGenerationService mockQuestionGenerationService) {
 
     this.practiceSessionRepository = practiceSessionRepository;
     this.userRepository = userRepository;
     this.questionRepository = questionRepository;
     this.practiceSessionQuestionRepository = practiceSessionQuestionRepository;
     this.answerEvaluationService = answerEvaluationService;
-}   
+    this.mockQuestionGenerationService = mockQuestionGenerationService;
+}
 
     @Override
 public PracticeSessionResponse startSession(
@@ -63,75 +69,156 @@ public PracticeSessionResponse startSession(
     // 1. Find logged-in user
     User user = userRepository.findByEmail(email)
             .orElseThrow(() ->
-                    new UserNotFoundException("User not found.")
+                    new UserNotFoundException(
+                            "User not found."
+                    )
             );
 
-    // 2. Create session
-    PracticeSession session = new PracticeSession();
+    // 2. Decide practice source
+    QuestionSource questionSource =
+            request.getQuestionSource() != null
+                    ? request.getQuestionSource()
+                    : QuestionSource.SAVED;
+
+    // 3. Create session
+    PracticeSession session =
+            new PracticeSession();
 
     session.setUser(user);
     session.setCategory(request.getCategory());
     session.setTopic(request.getTopic());
-    session.setDifficultyLevel(request.getDifficultyLevel());
-    session.setQuestionType(request.getQuestionType());
-    session.setTotalQuestions(request.getTotalQuestions());
-    session.setStatus(PracticeSessionStatus.IN_PROGRESS);
+    session.setDifficultyLevel(
+            request.getDifficultyLevel()
+    );
+    session.setQuestionType(
+            request.getQuestionType()
+    );
+    session.setTotalQuestions(
+            request.getTotalQuestions()
+    );
+    session.setStatus(
+            PracticeSessionStatus.IN_PROGRESS
+    );
+    session.setQuestionSource(questionSource);
 
-    // 3. Save session
     PracticeSession savedSession =
             practiceSessionRepository.save(session);
 
+    int assignedQuestions;
 
-    // 4. Find matching questions
-    List<Question> matchingQuestions =
-            questionRepository
-                    .findByCategoryIgnoreCaseAndTopicIgnoreCaseAndDifficultyLevelAndQuestionType(
-                            request.getCategory(),
-                            request.getTopic(),
-                            request.getDifficultyLevel(),
-                            request.getQuestionType()
-                    );
+    // 4A. Existing Saved Questions flow
+    if (questionSource == QuestionSource.SAVED) {
 
+        List<Question> matchingQuestions =
+                questionRepository
+                        .findByCategoryIgnoreCaseAndTopicIgnoreCaseAndDifficultyLevelAndQuestionType(
+                                request.getCategory(),
+                                request.getTopic(),
+                                request.getDifficultyLevel(),
+                                request.getQuestionType()
+                        );
 
-    // 5. Select requested number of questions
-    List<Question> selectedQuestions =
-            matchingQuestions.stream()
-                    .limit(request.getTotalQuestions())
-                    .toList();
-                    
+        List<Question> selectedQuestions =
+                matchingQuestions.stream()
+                        .limit(request.getTotalQuestions())
+                        .toList();
 
+        for (Question question : selectedQuestions) {
 
-    // 6. Attach selected questions to this session
-    for (Question question : selectedQuestions) {
+            PracticeSessionQuestion sessionQuestion =
+                    new PracticeSessionQuestion();
 
-        PracticeSessionQuestion sessionQuestion =
-                new PracticeSessionQuestion();
+            sessionQuestion.setPracticeSession(
+                    savedSession
+            );
 
-        sessionQuestion.setPracticeSession(savedSession);
-        sessionQuestion.setQuestion(question);
-        sessionQuestion.setAnswered(false);
+            sessionQuestion.setQuestion(
+                    question
+            );
 
-        practiceSessionQuestionRepository.save(sessionQuestion);
+            sessionQuestion.setAnswered(false);
+
+            practiceSessionQuestionRepository
+                    .save(sessionQuestion);
+        }
+
+        assignedQuestions =
+                selectedQuestions.size();
+
+    } else {
+
+        // 4B. PrepNovis Mock Questions flow
+        List<GeneratedMockQuestion> mockQuestions =
+                mockQuestionGenerationService
+                        .generateQuestions(
+                                request.getCategory(),
+                                request.getTopic(),
+                                request.getDifficultyLevel(),
+                                request.getQuestionType(),
+                                request.getTotalQuestions()
+                        );
+
+        for (GeneratedMockQuestion mockQuestion
+                : mockQuestions) {
+
+            PracticeSessionQuestion sessionQuestion =
+                    new PracticeSessionQuestion();
+
+            sessionQuestion.setPracticeSession(
+                    savedSession
+            );
+
+            sessionQuestion.setMockQuestionText(
+                    mockQuestion.getQuestionText()
+            );
+
+            sessionQuestion.setMockReferenceAnswer(
+                    mockQuestion.getReferenceAnswer()
+            );
+
+            sessionQuestion.setAnswered(false);
+
+            practiceSessionQuestionRepository
+                    .save(sessionQuestion);
+        }
+
+        assignedQuestions =
+                mockQuestions.size();
     }
 
-
-    // 7. Prepare response
+    // 5. Prepare response
     PracticeSessionResponse response =
             new PracticeSessionResponse();
 
-response.setId(savedSession.getId());
-response.setCategory(savedSession.getCategory());
-response.setTopic(savedSession.getTopic());
-response.setDifficultyLevel(savedSession.getDifficultyLevel());
-response.setQuestionType(savedSession.getQuestionType());
-response.setTotalQuestions(savedSession.getTotalQuestions());
-response.setAssignedQuestions(selectedQuestions.size());
-response.setStatus(savedSession.getStatus());
-response.setCreatedAt(savedSession.getCreatedAt());
+    response.setId(savedSession.getId());
+    response.setCategory(
+            savedSession.getCategory()
+    );
+    response.setTopic(
+            savedSession.getTopic()
+    );
+    response.setDifficultyLevel(
+            savedSession.getDifficultyLevel()
+    );
+    response.setQuestionType(
+            savedSession.getQuestionType()
+    );
+    response.setTotalQuestions(
+            savedSession.getTotalQuestions()
+    );
+    response.setAssignedQuestions(
+            assignedQuestions
+    );
+    response.setStatus(
+            savedSession.getStatus()
+    );
+    response.setCreatedAt(
+            savedSession.getCreatedAt()
+    );
 
-return response;
-
+    return response;
 }
+
 
 @Override
 public PracticeSessionDetailResponse getSessionDetails(
@@ -153,50 +240,97 @@ public PracticeSessionDetailResponse getSessionDetails(
                     .findByPracticeSessionId(sessionId);
 
     List<PracticeSessionQuestionResponse> questionResponses =
-            sessionQuestions.stream()
-                    .map(sessionQuestion -> {
+        sessionQuestions.stream()
+                .map(sessionQuestion -> {
 
-                        Question question =
-                                sessionQuestion.getQuestion();
+                    PracticeSessionQuestionResponse response =
+                            new PracticeSessionQuestionResponse();
 
-                        PracticeSessionQuestionResponse response =
-                                new PracticeSessionQuestionResponse();
+                    response.setId(sessionQuestion.getId());
 
-                        response.setId(sessionQuestion.getId());
-                        response.setQuestionId(question.getId());
-                        response.setQuestionText(question.getQuestionText());
-                        response.setCategory(question.getCategory());
-                        response.setTopic(question.getTopic());
+                    Question question =
+                            sessionQuestion.getQuestion();
+
+                    if (question != null) {
+
+                        // Saved Question
+                        response.setQuestionId(
+                                question.getId()
+                        );
+
+                        response.setQuestionText(
+                                question.getQuestionText()
+                        );
+
+                        response.setCategory(
+                                question.getCategory()
+                        );
+
+                        response.setTopic(
+                                question.getTopic()
+                        );
+
                         response.setQuestionType(
                                 question.getQuestionType().name()
                         );
+
                         response.setDifficultyLevel(
                                 question.getDifficultyLevel().name()
                         );
 
-                        response.setAnswered(
-                                sessionQuestion.getAnswered()
-                        );
-                        response.setUserAnswer(
-                                sessionQuestion.getUserAnswer()
-                        );
-                        response.setScore(
-                                sessionQuestion.getScore()
-                        );
-                        response.setFeedback(
-                                sessionQuestion.getFeedback()
+                    } else {
+
+                        // PrepNovis Mock Question
+                        response.setQuestionId(null);
+
+                        response.setQuestionText(
+                                sessionQuestion.getMockQuestionText()
                         );
 
-                        response.setStrengths(
-                                sessionQuestion.getStrengths()
-                        );
-                        response.setImprovements(
-                                sessionQuestion.getImprovements()
+                        response.setCategory(
+                                session.getCategory()
                         );
 
-                        return response;
-                    })
-                    .toList();
+                        response.setTopic(
+                                session.getTopic()
+                        );
+
+                        response.setQuestionType(
+                                session.getQuestionType().name()
+                        );
+
+                        response.setDifficultyLevel(
+                                session.getDifficultyLevel().name()
+                        );
+                    }
+
+                    response.setAnswered(
+                            sessionQuestion.getAnswered()
+                    );
+
+                    response.setUserAnswer(
+                            sessionQuestion.getUserAnswer()
+                    );
+
+                    response.setScore(
+                            sessionQuestion.getScore()
+                    );
+
+                    response.setFeedback(
+                            sessionQuestion.getFeedback()
+                    );
+
+                    response.setStrengths(
+                            sessionQuestion.getStrengths()
+                    );
+
+                    response.setImprovements(
+                            sessionQuestion.getImprovements()
+                    );
+
+                    return response;
+                })
+                .toList();
 
     PracticeSessionDetailResponse response =
             new PracticeSessionDetailResponse();
@@ -268,9 +402,34 @@ public PracticeSessionQuestionResponse submitAnswer(
    sessionQuestion.setAnswered(true);
 
 // Evaluate submitted answer
-    AnswerEvaluationResult evaluation =
+    String questionText;
+    String referenceAnswer;
+
+if (sessionQuestion.getQuestion() != null) {
+
+    // Saved Question
+    questionText =
+            sessionQuestion.getQuestion()
+                    .getQuestionText();
+
+    referenceAnswer =
+            sessionQuestion.getQuestion()
+                    .getAnswer();
+
+} else {
+
+    // PrepNovis Mock Question
+    questionText =
+            sessionQuestion.getMockQuestionText();
+
+    referenceAnswer =
+            sessionQuestion.getMockReferenceAnswer();
+}
+
+AnswerEvaluationResult evaluation =
         answerEvaluationService.evaluateAnswer(
-                sessionQuestion.getQuestion(),
+                questionText,
+                referenceAnswer,
                 request.getAnswer()
         );
 
@@ -290,35 +449,94 @@ PracticeSessionQuestion savedQuestion =
         practiceSessionQuestionRepository.save(sessionQuestion);
 
     // Step 6: Prepare response
-    Question question = savedQuestion.getQuestion();
+    
+PracticeSessionQuestionResponse response =
+        new PracticeSessionQuestionResponse();
 
-    PracticeSessionQuestionResponse response =
-            new PracticeSessionQuestionResponse();
+response.setId(savedQuestion.getId());
 
-    response.setId(savedQuestion.getId());
-    response.setQuestionId(question.getId());
-    response.setQuestionText(question.getQuestionText());
-    response.setCategory(question.getCategory());
-    response.setTopic(question.getTopic());
+Question question =
+        savedQuestion.getQuestion();
+
+if (question != null) {
+
+    // Saved Question
+    response.setQuestionId(
+            question.getId()
+    );
+
+    response.setQuestionText(
+            question.getQuestionText()
+    );
+
+    response.setCategory(
+            question.getCategory()
+    );
+
+    response.setTopic(
+            question.getTopic()
+    );
+
     response.setQuestionType(
             question.getQuestionType().name()
     );
+
     response.setDifficultyLevel(
             question.getDifficultyLevel().name()
     );
-    response.setAnswered(savedQuestion.getAnswered());
-    response.setUserAnswer(savedQuestion.getUserAnswer());
-    response.setScore(savedQuestion.getScore());
-    response.setFeedback(savedQuestion.getFeedback());
 
-    response.setStrengths(
+} else {
+
+    // PrepNovis Mock Question
+    response.setQuestionId(null);
+
+    response.setQuestionText(
+            savedQuestion.getMockQuestionText()
+    );
+
+    response.setCategory(
+            session.getCategory()
+    );
+
+    response.setTopic(
+            session.getTopic()
+    );
+
+    response.setQuestionType(
+            session.getQuestionType().name()
+    );
+
+    response.setDifficultyLevel(
+            session.getDifficultyLevel().name()
+    );
+}
+
+response.setAnswered(
+        savedQuestion.getAnswered()
+);
+
+response.setUserAnswer(
+        savedQuestion.getUserAnswer()
+);
+
+response.setScore(
+        savedQuestion.getScore()
+);
+
+response.setFeedback(
+        savedQuestion.getFeedback()
+);
+
+response.setStrengths(
         savedQuestion.getStrengths()
-    );
-    response.setImprovements(
-        savedQuestion.getImprovements()
-    );
+);
 
-    return response;
+response.setImprovements(
+        savedQuestion.getImprovements()
+);
+
+return response;
+
 }
 
 @Override

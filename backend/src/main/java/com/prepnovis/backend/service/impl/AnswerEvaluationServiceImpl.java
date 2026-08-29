@@ -7,11 +7,11 @@ import org.springframework.stereotype.Service;
 
 import com.prepnovis.backend.ai.GeminiClient;
 import com.prepnovis.backend.dto.response.AnswerEvaluationResult;
-import com.prepnovis.backend.entity.Question;
 import com.prepnovis.backend.service.AnswerEvaluationService;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
+
 
 @Service
 public class AnswerEvaluationServiceImpl
@@ -30,8 +30,9 @@ public class AnswerEvaluationServiceImpl
 
     @Override
     public AnswerEvaluationResult evaluateAnswer(
-            Question question,
-            String userAnswer) {
+        String questionText,
+        String referenceAnswer,
+        String userAnswer) {
 
         String prompt = """
                 You are an expert technical interview evaluator.
@@ -84,8 +85,8 @@ public class AnswerEvaluationServiceImpl
                 - Do not wrap JSON inside ```json blocks.
                 """
                 .formatted(
-                        question.getQuestionText(),
-                        question.getAnswer(),
+                        questionText,
+                        referenceAnswer,
                         userAnswer
                 );
 

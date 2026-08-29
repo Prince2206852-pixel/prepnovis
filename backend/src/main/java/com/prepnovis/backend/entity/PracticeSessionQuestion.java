@@ -17,9 +17,15 @@ public class PracticeSessionQuestion extends BaseEntity {
     @JoinColumn(name = "practice_session_id", nullable = false)
     private PracticeSession practiceSession;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "question_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "question_id")
     private Question question;
+
+    @Column(length = 2000)
+    private String mockQuestionText;
+
+    @Column(length = 5000)
+    private String mockReferenceAnswer;
 
     @Column(columnDefinition = "TEXT")
     private String userAnswer;
@@ -102,4 +108,21 @@ public class PracticeSessionQuestion extends BaseEntity {
     public void setImprovements(String improvements) {
         this.improvements = improvements;
     }
+
+    public String getMockQuestionText() {
+    return mockQuestionText;
+    }
+
+    public void setMockQuestionText(String mockQuestionText) {
+    this.mockQuestionText = mockQuestionText;
+    }
+
+    public String getMockReferenceAnswer() {
+    return mockReferenceAnswer;
+    }
+
+    public void setMockReferenceAnswer(String mockReferenceAnswer) {
+    this.mockReferenceAnswer = mockReferenceAnswer;
+    }
+
 }

@@ -1,5 +1,6 @@
 package com.prepnovis.backend.dto.request;
 
+import com.prepnovis.backend.entity.QuestionSource;
 import com.prepnovis.backend.entity.enums.DifficultyLevel;
 import com.prepnovis.backend.entity.enums.QuestionType;
 
@@ -25,6 +26,8 @@ public class StartPracticeSessionRequest {
     @Min(value = 1, message = "Total questions must be at least 1")
     @Max(value = 50, message = "Total questions cannot exceed 50")
     private int totalQuestions;
+
+    private QuestionSource questionSource;
 
     public StartPracticeSessionRequest() {
     }
@@ -68,4 +71,13 @@ public class StartPracticeSessionRequest {
     public void setTotalQuestions(int totalQuestions) {
         this.totalQuestions = totalQuestions;
     }
+
+    public QuestionSource getQuestionSource() {
+    return questionSource;
+    }
+
+public void setQuestionSource(QuestionSource questionSource) {
+    this.questionSource = questionSource;
+    }
+    
 }
