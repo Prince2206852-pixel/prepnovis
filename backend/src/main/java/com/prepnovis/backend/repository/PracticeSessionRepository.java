@@ -11,4 +11,6 @@ public interface PracticeSessionRepository
         extends JpaRepository<PracticeSession, UUID> {
 
     List<PracticeSession> findByUserId(UUID userId);
+
+    List<PracticeSession> findTop5ByUserIdOrderByCreatedAtDesc(UUID userId);
 }

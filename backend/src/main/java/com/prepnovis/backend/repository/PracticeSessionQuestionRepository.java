@@ -11,4 +11,6 @@ public interface PracticeSessionQuestionRepository
         extends JpaRepository<PracticeSessionQuestion, UUID> {
 
     List<PracticeSessionQuestion> findByPracticeSessionId(UUID practiceSessionId);
+
+    List<PracticeSessionQuestion> findByPracticeSessionUserId(UUID userId);
 }
