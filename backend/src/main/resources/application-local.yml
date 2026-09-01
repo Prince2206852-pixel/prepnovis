@@ -19,6 +19,11 @@ spring:
     init:
       mode: always
 
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
 gemini:
   api-key: ${GEMINI_API_KEY}
   model: gemini-3.5-flash

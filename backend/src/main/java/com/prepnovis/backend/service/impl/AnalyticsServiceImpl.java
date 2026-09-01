@@ -3,6 +3,7 @@ package com.prepnovis.backend.service.impl;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import com.prepnovis.backend.dto.response.AnalyticsDashboardResponse;
@@ -35,6 +36,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     }
 
     @Override
+    @Cacheable(value = "analyticsDashboard", key = "#email")
     public AnalyticsDashboardResponse getDashboard(String email) {
 
         // Step 1: Find logged-in user

@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 
 import com.prepnovis.backend.dto.request.StartPracticeSessionRequest;
@@ -61,7 +62,11 @@ public class PracticeSessionServiceImpl implements PracticeSessionService {
     this.mockQuestionGenerationService = mockQuestionGenerationService;
 }
 
-    @Override
+@Override
+@CacheEvict(
+        value = "analyticsDashboard",
+        key = "#email"
+)
 public PracticeSessionResponse startSession(
         String email,
         StartPracticeSessionRequest request) {
@@ -349,6 +354,10 @@ public PracticeSessionDetailResponse getSessionDetails(
 }
 
 @Override
+@CacheEvict(
+        value = "analyticsDashboard",
+        key = "#email"
+)
 public PracticeSessionQuestionResponse submitAnswer(
         String email,
         UUID sessionId,
@@ -540,6 +549,10 @@ return response;
 }
 
 @Override
+@CacheEvict(
+        value = "analyticsDashboard",
+        key = "#email"
+)
 public PracticeSessionResultResponse completeSession(
         String email,
         UUID sessionId) {
