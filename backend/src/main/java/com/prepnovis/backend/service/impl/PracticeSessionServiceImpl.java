@@ -7,6 +7,7 @@ import java.util.UUID;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 
+import com.prepnovis.backend.dto.event.AnswerEvaluatedEvent;
 import com.prepnovis.backend.dto.request.StartPracticeSessionRequest;
 import com.prepnovis.backend.dto.request.SubmitPracticeAnswerRequest;
 import com.prepnovis.backend.dto.response.AnswerEvaluationResult;
@@ -32,6 +33,7 @@ import com.prepnovis.backend.repository.PracticeSessionRepository;
 import com.prepnovis.backend.repository.QuestionRepository;
 import com.prepnovis.backend.repository.UserRepository;
 import com.prepnovis.backend.service.AnswerEvaluationService;
+import com.prepnovis.backend.service.AnswerEventPublisher;
 import com.prepnovis.backend.service.MockQuestionGenerationService;
 import com.prepnovis.backend.service.PracticeSessionService;
 
@@ -45,6 +47,7 @@ public class PracticeSessionServiceImpl implements PracticeSessionService {
     private final PracticeSessionQuestionRepository practiceSessionQuestionRepository;
     private final AnswerEvaluationService answerEvaluationService;
     private final MockQuestionGenerationService mockQuestionGenerationService;
+    private final AnswerEventPublisher answerEventPublisher;
 
     public PracticeSessionServiceImpl(
         PracticeSessionRepository practiceSessionRepository,
@@ -52,7 +55,8 @@ public class PracticeSessionServiceImpl implements PracticeSessionService {
         QuestionRepository questionRepository,
         PracticeSessionQuestionRepository practiceSessionQuestionRepository,
         AnswerEvaluationService answerEvaluationService,
-        MockQuestionGenerationService mockQuestionGenerationService) {
+        MockQuestionGenerationService mockQuestionGenerationService,
+        AnswerEventPublisher answerEventPublisher) {
 
     this.practiceSessionRepository = practiceSessionRepository;
     this.userRepository = userRepository;
@@ -60,6 +64,7 @@ public class PracticeSessionServiceImpl implements PracticeSessionService {
     this.practiceSessionQuestionRepository = practiceSessionQuestionRepository;
     this.answerEvaluationService = answerEvaluationService;
     this.mockQuestionGenerationService = mockQuestionGenerationService;
+    this.answerEventPublisher = answerEventPublisher;
 }
 
 @Override
@@ -456,6 +461,23 @@ sessionQuestion.setImprovements(
 
 PracticeSessionQuestion savedQuestion =
         practiceSessionQuestionRepository.save(sessionQuestion);
+
+
+// Publish Kafka event after answer is saved successfully
+AnswerEvaluatedEvent event =
+        new AnswerEvaluatedEvent(
+                session.getUser().getId(),
+                session.getId(),
+                savedQuestion.getId(),
+                session.getQuestionSource(),
+                savedQuestion.getScore(),
+                LocalDateTime.now().toString()
+        );
+
+answerEventPublisher.publishAnswerEvaluatedEvent(event);
+
+
+// Step 6: Prepare response
 
     // Step 6: Prepare response
     
