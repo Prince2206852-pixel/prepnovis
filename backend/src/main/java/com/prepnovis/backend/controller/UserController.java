@@ -10,6 +10,13 @@ import org.springframework.web.bind.annotation.RestController;
 import com.prepnovis.backend.dto.response.UserProfileResponse;
 import com.prepnovis.backend.service.UserService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+@Tag(
+        name = "Users",
+        description = "APIs for viewing authenticated user profile information."
+)
 @RestController
 @RequestMapping("/api/v1/users")
 public class UserController {
@@ -20,6 +27,10 @@ public class UserController {
         this.userService = userService;
     }
 
+    @Operation(
+            summary = "Get current user profile",
+            description = "Returns profile information for the currently authenticated user."
+    )
     @GetMapping("/me")
     public ResponseEntity<UserProfileResponse> getCurrentUser(
             Principal principal) {
