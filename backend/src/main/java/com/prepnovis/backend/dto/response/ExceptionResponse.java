@@ -9,6 +9,7 @@ public class ExceptionResponse {
     private int status;
     private String error;
     private String message;
+    private String path;
     private Map<String, String> validationErrors;
 
     public ExceptionResponse() {
@@ -53,4 +54,12 @@ public class ExceptionResponse {
     public void setValidationErrors(Map<String, String> validationErrors) {
         this.validationErrors = validationErrors;
     }
+
+    public String getPath() {
+    return path;
+    }
+
+    public void setPath(String path) {
+    this.path = path;
+    } 
 }

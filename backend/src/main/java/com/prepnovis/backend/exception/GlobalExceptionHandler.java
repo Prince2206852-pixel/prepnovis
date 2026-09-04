@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -13,146 +14,208 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.prepnovis.backend.dto.response.ExceptionResponse;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(EmailAlreadyExistsException.class)
     public ResponseEntity<ExceptionResponse> handleEmailAlreadyExistsException(
-            EmailAlreadyExistsException ex) {
+            EmailAlreadyExistsException ex,
+            HttpServletRequest request) {
 
-        ExceptionResponse response = new ExceptionResponse();
-        response.setTimestamp(LocalDateTime.now());
-        response.setStatus(HttpStatus.CONFLICT.value());
-        response.setError(HttpStatus.CONFLICT.getReasonPhrase());
-        response.setMessage(ex.getMessage());
+        return buildResponse(
+                HttpStatus.CONFLICT,
+                ex.getMessage(),
+                request
+        );
+    }
 
-        return new ResponseEntity<>(response, HttpStatus.CONFLICT);
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<ExceptionResponse> handleInvalidCredentialsException(
+            InvalidCredentialsException ex,
+            HttpServletRequest request) {
+
+        return buildResponse(
+                HttpStatus.UNAUTHORIZED,
+                ex.getMessage(),
+                request
+        );
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-public ResponseEntity<ExceptionResponse> handleValidationException(
-        MethodArgumentNotValidException ex) {
+    public ResponseEntity<ExceptionResponse> handleValidationException(
+            MethodArgumentNotValidException ex,
+            HttpServletRequest request) {
 
-    Map<String, String> errors = new HashMap<>();
+        Map<String, String> errors = new HashMap<>();
 
-    for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
-        errors.put(fieldError.getField(), fieldError.getDefaultMessage());
+        for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
+            errors.put(
+                    fieldError.getField(),
+                    fieldError.getDefaultMessage()
+            );
+        }
+
+        ExceptionResponse response = createResponse(
+                HttpStatus.BAD_REQUEST,
+                "Validation failed",
+                request
+        );
+
+        response.setValidationErrors(errors);
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(response);
     }
 
-    ExceptionResponse response = new ExceptionResponse();
-    response.setTimestamp(LocalDateTime.now());
-    response.setStatus(HttpStatus.BAD_REQUEST.value());
-    response.setError(HttpStatus.BAD_REQUEST.getReasonPhrase());
-    response.setMessage("Validation failed");
-    response.setValidationErrors(errors);
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<ExceptionResponse> handleUserNotFoundException(
+            UserNotFoundException ex,
+            HttpServletRequest request) {
 
-    return ResponseEntity.badRequest().body(response);
-}
+        return buildResponse(
+                HttpStatus.NOT_FOUND,
+                ex.getMessage(),
+                request
+        );
+    }
 
-@ExceptionHandler(UserNotFoundException.class)
-public ResponseEntity<ExceptionResponse> handleUserNotFoundException(
-        UserNotFoundException ex) {
+    @ExceptionHandler(QuestionNotFoundException.class)
+    public ResponseEntity<ExceptionResponse> handleQuestionNotFoundException(
+            QuestionNotFoundException ex,
+            HttpServletRequest request) {
 
-    ExceptionResponse response = new ExceptionResponse();
-    response.setTimestamp(LocalDateTime.now());
-    response.setStatus(HttpStatus.NOT_FOUND.value());
-    response.setError(HttpStatus.NOT_FOUND.getReasonPhrase());
-    response.setMessage(ex.getMessage());
+        return buildResponse(
+                HttpStatus.NOT_FOUND,
+                ex.getMessage(),
+                request
+        );
+    }
 
-    return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
-}
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ExceptionResponse> handleIllegalArgumentException(
+            IllegalArgumentException ex,
+            HttpServletRequest request) {
 
-@ExceptionHandler(QuestionNotFoundException.class)
-public ResponseEntity<ExceptionResponse> handleQuestionNotFoundException(
-        QuestionNotFoundException ex) {
+        return buildResponse(
+                HttpStatus.BAD_REQUEST,
+                ex.getMessage(),
+                request
+        );
+    }
 
-    ExceptionResponse response = new ExceptionResponse();
-    response.setTimestamp(LocalDateTime.now());
-    response.setStatus(HttpStatus.NOT_FOUND.value());
-    response.setError(HttpStatus.NOT_FOUND.getReasonPhrase());
-    response.setMessage(ex.getMessage());
+    @ExceptionHandler(PracticeSessionNotFoundException.class)
+    public ResponseEntity<ExceptionResponse> handlePracticeSessionNotFoundException(
+            PracticeSessionNotFoundException ex,
+            HttpServletRequest request) {
 
-    return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
-}
+        return buildResponse(
+                HttpStatus.NOT_FOUND,
+                ex.getMessage(),
+                request
+        );
+    }
 
-@ExceptionHandler(IllegalArgumentException.class)
-public ResponseEntity<ExceptionResponse> handleIllegalArgumentException(
-        IllegalArgumentException ex) {
+    @ExceptionHandler(PracticeSessionQuestionNotFoundException.class)
+    public ResponseEntity<ExceptionResponse> handlePracticeSessionQuestionNotFoundException(
+            PracticeSessionQuestionNotFoundException ex,
+            HttpServletRequest request) {
 
-    ExceptionResponse response = new ExceptionResponse();
-    response.setTimestamp(LocalDateTime.now());
-    response.setStatus(HttpStatus.BAD_REQUEST.value());
-    response.setError(HttpStatus.BAD_REQUEST.getReasonPhrase());
-    response.setMessage(ex.getMessage());
+        return buildResponse(
+                HttpStatus.NOT_FOUND,
+                ex.getMessage(),
+                request
+        );
+    }
 
-    return new ResponseEntity<>(
-            response,
-            HttpStatus.BAD_REQUEST
-    );
-}
+    @ExceptionHandler(PracticeSessionAccessDeniedException.class)
+    public ResponseEntity<ExceptionResponse> handlePracticeSessionAccessDeniedException(
+            PracticeSessionAccessDeniedException ex,
+            HttpServletRequest request) {
 
-@ExceptionHandler(PracticeSessionNotFoundException.class)
-public ResponseEntity<ExceptionResponse> handlePracticeSessionNotFoundException(
-        PracticeSessionNotFoundException ex) {
+        return buildResponse(
+                HttpStatus.FORBIDDEN,
+                ex.getMessage(),
+                request
+        );
+    }
 
-    ExceptionResponse response = new ExceptionResponse();
-    response.setTimestamp(LocalDateTime.now());
-    response.setStatus(HttpStatus.NOT_FOUND.value());
-    response.setError(HttpStatus.NOT_FOUND.getReasonPhrase());
-    response.setMessage(ex.getMessage());
+    @ExceptionHandler(InvalidPracticeSessionQuestionException.class)
+    public ResponseEntity<ExceptionResponse> handleInvalidPracticeSessionQuestionException(
+            InvalidPracticeSessionQuestionException ex,
+            HttpServletRequest request) {
 
-    return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
-}
+        return buildResponse(
+                HttpStatus.BAD_REQUEST,
+                ex.getMessage(),
+                request
+        );
+    }
 
-@ExceptionHandler(PracticeSessionQuestionNotFoundException.class)
-public ResponseEntity<ExceptionResponse> handlePracticeSessionQuestionNotFoundException(
-        PracticeSessionQuestionNotFoundException ex) {
+    @ExceptionHandler(InvalidPracticeSessionStateException.class)
+    public ResponseEntity<ExceptionResponse> handleInvalidPracticeSessionStateException(
+            InvalidPracticeSessionStateException ex,
+            HttpServletRequest request) {
 
-    ExceptionResponse response = new ExceptionResponse();
-    response.setTimestamp(LocalDateTime.now());
-    response.setStatus(HttpStatus.NOT_FOUND.value());
-    response.setError(HttpStatus.NOT_FOUND.getReasonPhrase());
-    response.setMessage(ex.getMessage());
+        return buildResponse(
+                HttpStatus.BAD_REQUEST,
+                ex.getMessage(),
+                request
+        );
+    }
 
-    return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
-}
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ExceptionResponse> handleHttpMessageNotReadableException(
+            HttpMessageNotReadableException ex,
+            HttpServletRequest request) {
 
-@ExceptionHandler(PracticeSessionAccessDeniedException.class)
-public ResponseEntity<ExceptionResponse> handlePracticeSessionAccessDeniedException(
-        PracticeSessionAccessDeniedException ex) {
+        return buildResponse(
+                HttpStatus.BAD_REQUEST,
+                "Invalid request body or unsupported value.",
+                request
+        );
+    }
 
-    ExceptionResponse response = new ExceptionResponse();
-    response.setTimestamp(LocalDateTime.now());
-    response.setStatus(HttpStatus.FORBIDDEN.value());
-    response.setError(HttpStatus.FORBIDDEN.getReasonPhrase());
-    response.setMessage(ex.getMessage());
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ExceptionResponse> handleUnexpectedException(
+            Exception ex,
+            HttpServletRequest request) {
 
-    return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
-}
-@ExceptionHandler(InvalidPracticeSessionQuestionException.class)
-public ResponseEntity<ExceptionResponse> handleInvalidPracticeSessionQuestionException(
-        InvalidPracticeSessionQuestionException ex) {
+        return buildResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "An unexpected error occurred. Please try again later.",
+                request
+        );
+    }
 
-    ExceptionResponse response = new ExceptionResponse();
-    response.setTimestamp(LocalDateTime.now());
-    response.setStatus(HttpStatus.BAD_REQUEST.value());
-    response.setError(HttpStatus.BAD_REQUEST.getReasonPhrase());
-    response.setMessage(ex.getMessage());
+    private ResponseEntity<ExceptionResponse> buildResponse(
+            HttpStatus status,
+            String message,
+            HttpServletRequest request) {
 
-    return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
-}
+        ExceptionResponse response =
+                createResponse(status, message, request);
 
-@ExceptionHandler(InvalidPracticeSessionStateException.class)
-public ResponseEntity<ExceptionResponse> handleInvalidPracticeSessionStateException(
-        InvalidPracticeSessionStateException ex) {
+        return ResponseEntity
+                .status(status)
+                .body(response);
+    }
 
-    ExceptionResponse response = new ExceptionResponse();
-    response.setTimestamp(LocalDateTime.now());
-    response.setStatus(HttpStatus.BAD_REQUEST.value());
-    response.setError(HttpStatus.BAD_REQUEST.getReasonPhrase());
-    response.setMessage(ex.getMessage());
+    private ExceptionResponse createResponse(
+            HttpStatus status,
+            String message,
+            HttpServletRequest request) {
 
-    return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
-}
+        ExceptionResponse response = new ExceptionResponse();
 
+        response.setTimestamp(LocalDateTime.now());
+        response.setStatus(status.value());
+        response.setError(status.getReasonPhrase());
+        response.setMessage(message);
+        response.setPath(request.getRequestURI());
+
+        return response;
+    }
 }
