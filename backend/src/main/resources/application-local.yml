@@ -53,3 +53,8 @@ gemini:
   api-key: ${GEMINI_API_KEY}
   model: gemini-3.5-flash
   base-url: https://generativelanguage.googleapis.com/v1beta
+
+
+app:
+  cors:
+    allowed-origins: http://localhost:5173 

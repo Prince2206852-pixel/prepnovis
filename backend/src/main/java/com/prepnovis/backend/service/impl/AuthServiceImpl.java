@@ -40,35 +40,36 @@ private final CustomUserDetailsService customUserDetailsService;
     this.customUserDetailsService = customUserDetailsService;
 }
 
- @Override
+@Override
 public RegisterUserResponse register(RegisterUserRequest request) {
 
-    // Step 1: Check if email already exists
-   if (userRepository.existsByEmail(request.getEmail())) {
-    throw new EmailAlreadyExistsException(
-            "Email '" + request.getEmail() + "' is already registered."
-    );
-}
+    String normalizedEmail =
+            request.getEmail().trim().toLowerCase();
 
+    if (userRepository.existsByEmail(normalizedEmail)) {
+        throw new EmailAlreadyExistsException(
+                "Email '" + normalizedEmail + "' is already registered."
+        );
+    }
 
-
-
-    // Step 2: Fetch USER role
     Role role = roleRepository.findByName("USER")
-            .orElseThrow(() -> new RuntimeException("Default role USER not found."));
+            .orElseThrow(() ->
+                    new RuntimeException("Default role USER not found.")
+            );
 
-    // Step 3: Create User entity
     User user = new User();
-    user.setFullName(request.getFullName());
-    user.setEmail(request.getEmail());
-    user.setPassword(passwordEncoder.encode(request.getPassword()));
+    user.setFullName(request.getFullName().trim());
+    user.setEmail(normalizedEmail);
+    user.setPassword(
+            passwordEncoder.encode(request.getPassword())
+    );
     user.setRole(role);
 
-    // Step 4: Save User
     User savedUser = userRepository.save(user);
 
-    // Step 5: Prepare Response
-    RegisterUserResponse response = new RegisterUserResponse();
+    RegisterUserResponse response =
+            new RegisterUserResponse();
+
     response.setId(savedUser.getId());
     response.setFullName(savedUser.getFullName());
     response.setEmail(savedUser.getEmail());
@@ -81,18 +82,29 @@ public RegisterUserResponse register(RegisterUserRequest request) {
 @Override
 public LoginResponse login(LoginRequest request) {
 
-    // Step 1: Find user by email
-    User user = userRepository.findByEmail(request.getEmail())
+    // Step 1: Normalize email
+    String normalizedEmail =
+            request.getEmail().trim().toLowerCase();
+
+    // Step 2: Find user by normalized email
+    User user = userRepository.findByEmail(normalizedEmail)
             .orElseThrow(() ->
-                    new InvalidCredentialsException("Invalid email or password.")
+                    new InvalidCredentialsException(
+                            "Invalid email or password."
+                    )
             );
 
-    // Step 2: Check password
-    if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-        throw new InvalidCredentialsException("Invalid email or password.");
+    // Step 3: Check password
+    if (!passwordEncoder.matches(
+            request.getPassword(),
+            user.getPassword())) {
+
+        throw new InvalidCredentialsException(
+                "Invalid email or password."
+        );
     }
 
-    // Step 3: Prepare response
+    // Step 4: Prepare response
     LoginResponse response = new LoginResponse();
 
     response.setId(user.getId());
@@ -100,13 +112,16 @@ public LoginResponse login(LoginRequest request) {
     response.setEmail(user.getEmail());
     response.setRole(user.getRole().getName());
 
-    // JWT token will be added later
+    // Step 5: Generate JWT token
     UserDetails userDetails =
-        customUserDetailsService.loadUserByUsername(user.getEmail());
+            customUserDetailsService.loadUserByUsername(
+                    user.getEmail()
+            );
 
-String token = jwtService.generateToken(userDetails);
+    String token =
+            jwtService.generateToken(userDetails);
 
-response.setAccessToken(token);
+    response.setAccessToken(token);
 
     return response;
 }
