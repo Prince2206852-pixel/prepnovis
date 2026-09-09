@@ -22,6 +22,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     private static final int LOGIN_LIMIT = 10;
     private static final int REGISTER_LIMIT = 5;
+    private static final int RESEND_VERIFICATION_LIMIT = 3;
+    private static final int FORGOT_PASSWORD_LIMIT = 3;
 
     private static final Duration WINDOW =
             Duration.ofMinutes(1);
@@ -59,6 +61,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
         } else if ("/api/v1/auth/register".equals(path)) {
             limit = REGISTER_LIMIT;
+
+        } else if ("/api/v1/auth/resend-verification".equals(path)) {
+            limit = RESEND_VERIFICATION_LIMIT;
+
+        } else if ("/api/v1/auth/forgot-password".equals(path)) {
+            limit = FORGOT_PASSWORD_LIMIT;
 
         } else {
             filterChain.doFilter(request, response);

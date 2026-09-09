@@ -1,7 +1,9 @@
 "use client";
 
+
+import { clearAuthSession } from "@/lib/auth";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   BarChart3,
   BookOpen,
@@ -44,6 +46,12 @@ const navigationItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  function handleLogout() {
+  clearAuthSession();
+  router.push("/login");
+}
 
   return (
     <aside className="fixed left-0 top-0 flex h-screen w-64 flex-col bg-slate-950 px-4 py-6 text-white">
@@ -89,11 +97,12 @@ export default function Sidebar() {
         </Link>
 
         <button
-          type="button"
-          className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-400 transition hover:bg-slate-900 hover:text-white"
+             type="button"
+             onClick={handleLogout}
+            className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-400 transition hover:bg-slate-900 hover:text-white"
         >
-          <LogOut size={19} />
-          Logout
+           <LogOut size={19} />
+            Logout
         </button>
       </div>
     </aside>

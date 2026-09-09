@@ -1,14 +1,34 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Bell, Search } from "lucide-react";
 
+import { AuthUser, getAuthUser } from "@/lib/auth";
+
 export default function Header() {
+  const [user, setUser] = useState<AuthUser | null>(null);
+
+  useEffect(() => {
+    setUser(getAuthUser());
+  }, []);
+
+  const initials = user?.fullName
+    ? user.fullName
+        .split(" ")
+        .filter(Boolean)
+        .map((part) => part[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase()
+    : "U";
+
   return (
     <header className="flex h-20 items-center justify-between border-b border-slate-200 bg-white px-8">
       <div>
         <h2 className="text-lg font-semibold text-slate-900">
           Interview Preparation
         </h2>
+
         <p className="text-sm text-slate-500">
           Practice. Improve. Get interview-ready.
         </p>
@@ -36,13 +56,18 @@ export default function Header() {
         </button>
 
         <div className="flex items-center gap-3 border-l border-slate-200 pl-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 font-semibold text-indigo-700">
-            P
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-700">
+            {initials}
           </div>
 
           <div className="hidden sm:block">
-            <p className="text-sm font-semibold text-slate-900">Prince</p>
-            <p className="text-xs text-slate-500">Java Developer</p>
+            <p className="text-sm font-semibold text-slate-900">
+              {user?.fullName ?? "PrepNovis User"}
+            </p>
+
+            <p className="text-xs text-slate-500">
+              {user?.role ?? "USER"}
+            </p>
           </div>
         </div>
       </div>

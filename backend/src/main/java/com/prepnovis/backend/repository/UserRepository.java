@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.prepnovis.backend.entity.User;
+import com.prepnovis.backend.entity.enums.AuthProvider;
 
 public interface UserRepository extends JpaRepository<User, UUID> {
 
@@ -14,4 +15,10 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByEmail(String email);
 
     boolean existsByEmail(String email);
+
+    @EntityGraph(attributePaths = "role")
+    Optional<User> findByAuthProviderAndProviderId(
+        AuthProvider authProvider,
+        String providerId
+);
 }
