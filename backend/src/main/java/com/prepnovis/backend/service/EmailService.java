@@ -13,4 +13,10 @@ public interface EmailService {
             String recipientName,
             String resetToken
     );
+
+    void sendFeedback(
+            String senderName,
+            String senderEmail,
+            String message
+    );
 }
