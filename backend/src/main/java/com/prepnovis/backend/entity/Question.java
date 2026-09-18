@@ -8,11 +8,17 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "questions")
 public class Question extends BaseEntity {
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     @Column(nullable = false, length = 2000)
     private String questionText;
@@ -36,6 +42,14 @@ public class Question extends BaseEntity {
 
     @Column(length = 1000)
     private String tags;
+
+    public User getUser() {
+    return user;
+    }
+
+    public void setUser(User user) {
+    this.user = user;
+    }   
 
     public String getQuestionText() {
         return questionText;

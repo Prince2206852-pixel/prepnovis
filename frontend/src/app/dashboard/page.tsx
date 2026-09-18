@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   BookOpen,
   BrainCircuit,
@@ -18,6 +19,7 @@ import { AuthUser, getAuthUser } from "@/lib/auth";
 
 export default function DashboardPage() {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     setUser(getAuthUser());
@@ -25,20 +27,21 @@ export default function DashboardPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen overflow-x-hidden bg-slate-50">
         <Sidebar />
 
-        <div className="ml-64 min-h-screen">
+        <div className="min-h-screen w-full lg:ml-64 lg:w-[calc(100%-16rem)]">
           <Header />
 
-          <main className="px-8 py-8">
-            <section className="mb-8 flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-              <div>
+          <main className="w-full px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+            {/* WELCOME */}
+            <section className="mb-6 flex flex-col gap-5 sm:mb-8 xl:flex-row xl:items-center xl:justify-between">
+              <div className="min-w-0">
                 <p className="mb-2 text-sm font-medium text-indigo-600">
                   Welcome back
                 </p>
 
-                <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+                <h1 className="break-words text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
                   Good morning, {user?.fullName ?? "there"}
                 </h1>
 
@@ -48,26 +51,29 @@ export default function DashboardPage() {
                 </p>
               </div>
 
-              <div className="flex flex-wrap gap-3">
+              <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 xl:w-auto">
                 <button
                   type="button"
-                  className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+                  onClick={() => router.push("/questions")}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
                 >
-                  <BookOpen size={18} />
+                  <BookOpen size={18} className="shrink-0" />
                   Practice Saved Questions
                 </button>
 
                 <button
                   type="button"
-                  className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
+                  onClick={() => router.push("/mock")}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
                 >
-                  <BrainCircuit size={18} />
+                  <BrainCircuit size={18} className="shrink-0" />
                   Start PrepNovis Mock
                 </button>
               </div>
             </section>
 
-            <section className="mb-8 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+            {/* STATS */}
+            <section className="mb-6 grid grid-cols-1 gap-4 sm:mb-8 sm:grid-cols-2 sm:gap-5 xl:grid-cols-4">
               <StatCard
                 title="Total Sessions"
                 value={24}
@@ -97,10 +103,13 @@ export default function DashboardPage() {
               />
             </section>
 
-            <section className="mb-8 grid gap-6 xl:grid-cols-[1.6fr_1fr]">
-              <PerformanceChart />
+            {/* PERFORMANCE */}
+            <section className="mb-6 grid min-w-0 grid-cols-1 gap-5 sm:mb-8 sm:gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+              <div className="min-w-0 overflow-hidden">
+                <PerformanceChart />
+              </div>
 
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
                 <div className="mb-6">
                   <h2 className="text-base font-semibold text-slate-900">
                     Practice Performance
@@ -112,14 +121,15 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="space-y-6">
+                  {/* SAVED */}
                   <div>
-                    <div className="mb-2 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
                           <BookOpen size={17} />
                         </div>
 
-                        <div>
+                        <div className="min-w-0">
                           <p className="text-sm font-semibold text-slate-800">
                             Saved Questions
                           </p>
@@ -130,7 +140,7 @@ export default function DashboardPage() {
                         </div>
                       </div>
 
-                      <span className="text-lg font-bold text-slate-900">
+                      <span className="shrink-0 text-lg font-bold text-slate-900">
                         7.5
                       </span>
                     </div>
@@ -140,14 +150,15 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
+                  {/* MOCK */}
                   <div>
-                    <div className="mb-2 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
                           <BrainCircuit size={17} />
                         </div>
 
-                        <div>
+                        <div className="min-w-0">
                           <p className="text-sm font-semibold text-slate-800">
                             PrepNovis Mock
                           </p>
@@ -158,7 +169,7 @@ export default function DashboardPage() {
                         </div>
                       </div>
 
-                      <span className="text-lg font-bold text-slate-900">
+                      <span className="shrink-0 text-lg font-bold text-slate-900">
                         8.2
                       </span>
                     </div>
@@ -182,10 +193,13 @@ export default function DashboardPage() {
               </div>
             </section>
 
-            <section className="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
-              <RecentSessions />
+            {/* RECENT + NOVIS */}
+            <section className="grid min-w-0 grid-cols-1 gap-5 sm:gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+              <div className="min-w-0 overflow-hidden">
+                <RecentSessions />
+              </div>
 
-              <div className="rounded-2xl bg-slate-950 p-6 text-white shadow-sm">
+              <div className="min-w-0 rounded-2xl bg-slate-950 p-5 text-white shadow-sm sm:p-6">
                 <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-500">
                   <BrainCircuit size={23} />
                 </div>
@@ -194,7 +208,7 @@ export default function DashboardPage() {
                   Meet Novis
                 </p>
 
-                <h2 className="mt-2 text-2xl font-bold">
+                <h2 className="mt-2 text-xl font-bold sm:text-2xl">
                   Your AI interview coach
                 </h2>
 
@@ -206,6 +220,7 @@ export default function DashboardPage() {
 
                 <button
                   type="button"
+                  onClick={() => router.push("/practice")}
                   className="mt-6 w-full rounded-xl bg-white px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-slate-100"
                 >
                   Start practicing

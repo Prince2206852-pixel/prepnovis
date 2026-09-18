@@ -1,5 +1,6 @@
 package com.prepnovis.backend.controller;
 
+import java.security.Principal;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
@@ -35,7 +36,9 @@ public class QuestionController {
 
     private final QuestionService questionService;
 
-    public QuestionController(QuestionService questionService) {
+    public QuestionController(
+            QuestionService questionService) {
+
         this.questionService = questionService;
     }
 
@@ -45,12 +48,17 @@ public class QuestionController {
     )
     @PostMapping
     public ResponseEntity<QuestionResponse> createQuestion(
-            @Valid @RequestBody QuestionRequest request) {
+            @Valid @RequestBody QuestionRequest request,
+            Principal principal) {
 
         QuestionResponse response =
-                questionService.createQuestion(request);
+                questionService.createQuestion(
+                        principal.getName(),
+                        request
+                );
 
-        return ResponseEntity.status(HttpStatus.CREATED)
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
                 .body(response);
     }
 
@@ -65,7 +73,8 @@ public class QuestionController {
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String topic,
             @RequestParam(required = false) DifficultyLevel difficultyLevel,
-            @RequestParam(required = false) QuestionType questionType) {
+            @RequestParam(required = false) QuestionType questionType,
+            Principal principal) {
 
         if (page < 0) {
             throw new IllegalArgumentException(
@@ -81,6 +90,7 @@ public class QuestionController {
 
         return ResponseEntity.ok(
                 questionService.getAllQuestions(
+                        principal.getName(),
                         page,
                         size,
                         category,
@@ -97,10 +107,14 @@ public class QuestionController {
     )
     @GetMapping("/{id}")
     public ResponseEntity<QuestionResponse> getQuestionById(
-            @PathVariable UUID id) {
+            @PathVariable UUID id,
+            Principal principal) {
 
         return ResponseEntity.ok(
-                questionService.getQuestionById(id)
+                questionService.getQuestionById(
+                        principal.getName(),
+                        id
+                )
         );
     }
 
@@ -111,10 +125,15 @@ public class QuestionController {
     @PutMapping("/{id}")
     public ResponseEntity<QuestionResponse> updateQuestion(
             @PathVariable UUID id,
-            @Valid @RequestBody QuestionRequest request) {
+            @Valid @RequestBody QuestionRequest request,
+            Principal principal) {
 
         return ResponseEntity.ok(
-                questionService.updateQuestion(id, request)
+                questionService.updateQuestion(
+                        principal.getName(),
+                        id,
+                        request
+                )
         );
     }
 
@@ -124,9 +143,13 @@ public class QuestionController {
     )
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteQuestion(
-            @PathVariable UUID id) {
+            @PathVariable UUID id,
+            Principal principal) {
 
-        questionService.deleteQuestion(id);
+        questionService.deleteQuestion(
+                principal.getName(),
+                id
+        );
 
         return ResponseEntity.noContent().build();
     }

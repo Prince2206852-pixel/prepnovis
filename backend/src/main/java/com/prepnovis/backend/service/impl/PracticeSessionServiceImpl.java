@@ -116,17 +116,47 @@ public PracticeSessionResponse startSession(
 
     int assignedQuestions;
 
-    // 4A. Existing Saved Questions flow
-    if (questionSource == QuestionSource.SAVED) {
+    // 4A. Saved Questions flow
+if (questionSource == QuestionSource.SAVED) {
 
-        List<Question> matchingQuestions =
-                questionRepository
-                        .findByCategoryIgnoreCaseAndTopicIgnoreCaseAndDifficultyLevelAndQuestionType(
-                                request.getCategory(),
-                                request.getTopic(),
-                                request.getDifficultyLevel(),
-                                request.getQuestionType()
-                        );
+    // Practice one exact saved question
+    if (request.getQuestionId() != null) {
+
+        Question question =
+        questionRepository
+                .findByIdAndUserId(
+                        request.getQuestionId(),
+                        user.getId()
+                )
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "Saved question not found."
+                        )
+                );
+
+        PracticeSessionQuestion sessionQuestion =
+                new PracticeSessionQuestion();
+
+        sessionQuestion.setPracticeSession(savedSession);
+        sessionQuestion.setQuestion(question);
+        sessionQuestion.setAnswered(false);
+
+        practiceSessionQuestionRepository.save(sessionQuestion);
+
+        assignedQuestions = 1;
+
+    } else {
+
+        // Existing multi-question Saved Questions flow
+       List<Question> matchingQuestions =
+        questionRepository
+                .findByUserIdAndCategoryIgnoreCaseAndTopicIgnoreCaseAndDifficultyLevelAndQuestionType(
+                        user.getId(),
+                        request.getCategory(),
+                        request.getTopic(),
+                        request.getDifficultyLevel(),
+                        request.getQuestionType()
+                );
 
         List<Question> selectedQuestions =
                 matchingQuestions.stream()
@@ -138,24 +168,18 @@ public PracticeSessionResponse startSession(
             PracticeSessionQuestion sessionQuestion =
                     new PracticeSessionQuestion();
 
-            sessionQuestion.setPracticeSession(
-                    savedSession
-            );
-
-            sessionQuestion.setQuestion(
-                    question
-            );
-
+            sessionQuestion.setPracticeSession(savedSession);
+            sessionQuestion.setQuestion(question);
             sessionQuestion.setAnswered(false);
 
             practiceSessionQuestionRepository
                     .save(sessionQuestion);
         }
 
-        assignedQuestions =
-                selectedQuestions.size();
+        assignedQuestions = selectedQuestions.size();
+    }
 
-    } else {
+} else {
 
         // 4B. PrepNovis Mock Questions flow
         List<GeneratedMockQuestion> mockQuestions =

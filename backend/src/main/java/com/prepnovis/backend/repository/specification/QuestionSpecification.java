@@ -1,5 +1,7 @@
 package com.prepnovis.backend.repository.specification;
 
+import java.util.UUID;
+
 import org.springframework.data.jpa.domain.Specification;
 
 import com.prepnovis.backend.entity.Question;
@@ -69,4 +71,13 @@ public class QuestionSpecification {
             );
         };
     }
+    public static Specification<Question> belongsToUser(UUID userId) {
+
+    return (root, query, criteriaBuilder) ->
+            criteriaBuilder.equal(
+                    root.get("user").get("id"),
+                    userId
+            );
+}
+
 }

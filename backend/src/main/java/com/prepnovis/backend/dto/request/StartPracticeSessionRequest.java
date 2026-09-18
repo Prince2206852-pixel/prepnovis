@@ -1,5 +1,7 @@
 package com.prepnovis.backend.dto.request;
 
+import java.util.UUID;
+
 import com.prepnovis.backend.entity.QuestionSource;
 import com.prepnovis.backend.entity.enums.DifficultyLevel;
 import com.prepnovis.backend.entity.enums.QuestionType;
@@ -28,6 +30,7 @@ public class StartPracticeSessionRequest {
     private int totalQuestions;
 
     private QuestionSource questionSource;
+    private UUID questionId;
 
     public StartPracticeSessionRequest() {
     }
@@ -79,5 +82,13 @@ public class StartPracticeSessionRequest {
 public void setQuestionSource(QuestionSource questionSource) {
     this.questionSource = questionSource;
     }
+
+    public UUID getQuestionId() {
+    return questionId;
+}
+
+public void setQuestionId(UUID questionId) {
+    this.questionId = questionId;
+}
     
 }
