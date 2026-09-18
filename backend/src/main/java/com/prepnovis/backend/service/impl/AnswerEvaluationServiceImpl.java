@@ -9,13 +9,15 @@ import com.prepnovis.backend.ai.GeminiClient;
 import com.prepnovis.backend.dto.response.AnswerEvaluationResult;
 import com.prepnovis.backend.service.AnswerEvaluationService;
 
+import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
-
 
 @Service
 public class AnswerEvaluationServiceImpl
         implements AnswerEvaluationService {
+
+    private static final int MAX_EVALUATION_ATTEMPTS = 3;
 
     private final GeminiClient geminiClient;
     private final JsonMapper jsonMapper;
@@ -30,9 +32,9 @@ public class AnswerEvaluationServiceImpl
 
     @Override
     public AnswerEvaluationResult evaluateAnswer(
-        String questionText,
-        String referenceAnswer,
-        String userAnswer) {
+            String questionText,
+            String referenceAnswer,
+            String userAnswer) {
 
         String prompt = """
                 You are an expert technical interview evaluator.
@@ -80,7 +82,8 @@ public class AnswerEvaluationServiceImpl
                 - Feedback should be concise and useful.
                 - Strengths should mention what the candidate did well.
                 - Improvements should explain what should be added or corrected.
-                - Return JSON only.
+                - Keep feedback, strengths and improvements short.
+                - Return complete valid JSON only.
                 - Do not return markdown.
                 - Do not wrap JSON inside ```json blocks.
                 """
@@ -90,78 +93,138 @@ public class AnswerEvaluationServiceImpl
                         userAnswer
                 );
 
-        try {
+        for (int attempt = 1;
+             attempt <= MAX_EVALUATION_ATTEMPTS;
+             attempt++) {
 
-            String aiResponse =
-                    geminiClient.generateContent(prompt);
+            try {
 
-            if (aiResponse == null || aiResponse.isBlank()) {
-                throw new RuntimeException(
-                        "Gemini returned an empty evaluation response."
-                );
-            }
+                String aiResponse =
+                        geminiClient.generateContent(prompt);
 
-            String cleanedResponse =
-                    cleanJsonResponse(aiResponse);
+                if (aiResponse == null
+                        || aiResponse.isBlank()) {
 
-            JsonNode json =
-                    jsonMapper.readTree(cleanedResponse);
+                    throw new RuntimeException(
+                            "Gemini returned an empty evaluation response."
+                    );
+                }
 
-            if (json == null) {
-                throw new RuntimeException(
-                        "Unable to parse Gemini evaluation response."
-                );
-            }
+                String cleanedResponse =
+                        cleanJsonResponse(aiResponse);
 
-            validateRequiredFields(json);
+                JsonNode json =
+                        jsonMapper.readTree(cleanedResponse);
 
-            double score =
-                    json.get("score").asDouble();
+                if (json == null) {
 
-            score = clampScore(score);
+                    throw new RuntimeException(
+                            "Unable to parse Gemini evaluation response."
+                    );
+                }
 
-            String feedback =
-                    json.get("feedback").asText();
+                validateRequiredFields(json);
 
-            List<String> strengths =
-                    extractStringList(
-                            json.get("strengths")
+                double score =
+                        clampScore(
+                                json.get("score").asDouble()
+                        );
+
+                String feedback =
+                        json.get("feedback").asText();
+
+                List<String> strengths =
+                        extractStringList(
+                                json.get("strengths")
+                        );
+
+                List<String> improvements =
+                        extractStringList(
+                                json.get("improvements")
+                        );
+
+                if (strengths.isEmpty()) {
+
+                    strengths.add(
+                            "No specific strength was identified."
+                    );
+                }
+
+                if (improvements.isEmpty()) {
+
+                    improvements.add(
+                            "Provide a more complete and structured answer."
+                    );
+                }
+
+                AnswerEvaluationResult result =
+                        new AnswerEvaluationResult();
+
+                result.setScore(score);
+                result.setFeedback(feedback);
+                result.setStrengths(strengths);
+                result.setImprovements(improvements);
+
+                return result;
+
+            } catch (JacksonException ex) {
+
+                if (attempt
+                        == MAX_EVALUATION_ATTEMPTS) {
+
+                    System.err.println(
+                            "Gemini returned invalid JSON after "
+                                    + MAX_EVALUATION_ATTEMPTS
+                                    + " attempts: "
+                                    + ex.getMessage()
                     );
 
-            List<String> improvements =
-                    extractStringList(
-                            json.get("improvements")
+                    throw new RuntimeException(
+                            "Failed to evaluate answer using Gemini.",
+                            ex
                     );
+                }
 
-            if (strengths.isEmpty()) {
-                strengths.add(
-                        "No specific strength was identified."
+                System.out.println(
+                        "Gemini returned invalid JSON. "
+                                + "Retrying evaluation "
+                                + attempt
+                                + "/"
+                                + (MAX_EVALUATION_ATTEMPTS - 1)
+                );
+
+            } catch (Exception ex) {
+
+                System.err.println(
+                        "Gemini evaluation failed: "
+                                + ex.getClass().getName()
+                                + " - "
+                                + ex.getMessage()
+                );
+
+                if (ex.getCause() != null) {
+
+                    System.err.println(
+                            "Gemini root cause: "
+                                    + ex.getCause()
+                                            .getClass()
+                                            .getName()
+                                    + " - "
+                                    + ex.getCause()
+                                            .getMessage()
+                    );
+                }
+
+                throw new RuntimeException(
+                        "Failed to evaluate answer using Gemini.",
+                        ex
                 );
             }
-
-            if (improvements.isEmpty()) {
-                improvements.add(
-                        "Provide a more complete and structured answer."
-                );
-            }
-
-            AnswerEvaluationResult result =
-                    new AnswerEvaluationResult();
-
-            result.setScore(score);
-            result.setFeedback(feedback);
-            result.setStrengths(strengths);
-            result.setImprovements(improvements);
-
-            return result;
-
-        } catch (Exception ex) {
-
-            throw new RuntimeException(
-                    "Failed to evaluate answer using Gemini.",
-                    ex
-            );
         }
+
+        throw new RuntimeException(
+                "Failed to evaluate answer using Gemini."
+        );
     }
 
     private String cleanJsonResponse(
@@ -171,14 +234,18 @@ public class AnswerEvaluationServiceImpl
                 response.trim();
 
         if (cleaned.startsWith("```json")) {
+
             cleaned =
                     cleaned.substring(7);
+
         } else if (cleaned.startsWith("```")) {
+
             cleaned =
                     cleaned.substring(3);
         }
 
         if (cleaned.endsWith("```")) {
+
             cleaned =
                     cleaned.substring(
                             0,
@@ -193,24 +260,28 @@ public class AnswerEvaluationServiceImpl
             JsonNode json) {
 
         if (!json.hasNonNull("score")) {
+
             throw new RuntimeException(
                     "Gemini response does not contain score."
             );
         }
 
         if (!json.hasNonNull("feedback")) {
+
             throw new RuntimeException(
                     "Gemini response does not contain feedback."
             );
         }
 
         if (!json.hasNonNull("strengths")) {
+
             throw new RuntimeException(
                     "Gemini response does not contain strengths."
             );
         }
 
         if (!json.hasNonNull("improvements")) {
+
             throw new RuntimeException(
                     "Gemini response does not contain improvements."
             );
@@ -237,7 +308,9 @@ public class AnswerEvaluationServiceImpl
         List<String> values =
                 new ArrayList<>();
 
-        if (node == null || !node.isArray()) {
+        if (node == null
+                || !node.isArray()) {
+
             return values;
         }
 
@@ -246,8 +319,8 @@ public class AnswerEvaluationServiceImpl
             String value =
                     item.asText();
 
-            if (value != null &&
-                    !value.isBlank()) {
+            if (value != null
+                    && !value.isBlank()) {
 
                 values.add(
                         value.trim()

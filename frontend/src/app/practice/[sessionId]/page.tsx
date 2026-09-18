@@ -4,8 +4,10 @@ import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
+  ArrowRight,
   BrainCircuit,
   CheckCircle2,
+  ChevronLeft,
   Loader2,
   Send,
   Trophy,
@@ -18,6 +20,7 @@ import Sidebar from "@/components/Sidebar";
 import {
   completePracticeSession,
   getPracticeSession,
+  getPracticeSessionResult,
   submitPracticeAnswer,
 } from "@/services/practiceService";
 
@@ -57,8 +60,12 @@ export default function PracticeSessionPage({
   >({});
 
   const [completing, setCompleting] = useState(false);
+
   const [result, setResult] =
     useState<PracticeSessionResult | null>(null);
+
+  const [currentQuestionIndex, setCurrentQuestionIndex] =
+    useState(0);
 
   async function loadSession() {
     setLoading(true);
@@ -78,6 +85,27 @@ export default function PracticeSessionPage({
       });
 
       setAnswers(initialAnswers);
+
+      if (response.status === "COMPLETED") {
+        const sessionResult =
+          await getPracticeSessionResult(sessionId);
+
+        setResult(sessionResult);
+        setCurrentQuestionIndex(0);
+      } else {
+        setResult(null);
+
+        const firstUnansweredIndex =
+          response.questions.findIndex(
+            (question) => !question.answered,
+          );
+
+        setCurrentQuestionIndex(
+          firstUnansweredIndex >= 0
+            ? firstUnansweredIndex
+            : 0,
+        );
+      }
     } catch (error) {
       setPageError(
         error instanceof Error
@@ -147,7 +175,8 @@ export default function PracticeSessionPage({
 
       setAnswers((current) => ({
         ...current,
-        [question.id]: response.userAnswer ?? answer,
+        [question.id]:
+          response.userAnswer ?? answer,
       }));
     } catch (error) {
       setAnswerErrors((current) => ({
@@ -184,6 +213,11 @@ export default function PracticeSessionPage({
             }
           : current,
       );
+
+      window.scrollTo({
+        top: document.body.scrollHeight,
+        behavior: "smooth",
+      });
     } catch (error) {
       setPageError(
         error instanceof Error
@@ -193,6 +227,40 @@ export default function PracticeSessionPage({
     } finally {
       setCompleting(false);
     }
+  }
+
+  function handlePreviousQuestion() {
+    if (currentQuestionIndex <= 0) {
+      return;
+    }
+
+    setCurrentQuestionIndex(
+      (current) => current - 1,
+    );
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }
+
+  function handleNextQuestion() {
+    if (
+      !session ||
+      currentQuestionIndex >=
+        session.questions.length - 1
+    ) {
+      return;
+    }
+
+    setCurrentQuestionIndex(
+      (current) => current + 1,
+    );
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
   }
 
   const answeredQuestions =
@@ -205,6 +273,17 @@ export default function PracticeSessionPage({
     session.questions.length > 0 &&
     answeredQuestions === session.questions.length;
 
+  const currentQuestion =
+    session?.questions[currentQuestionIndex] ?? null;
+
+  const isFirstQuestion =
+    currentQuestionIndex === 0;
+
+  const isLastQuestion =
+    session !== null &&
+    currentQuestionIndex ===
+      session.questions.length - 1;
+
   return (
     <AuthGuard>
       <div className="min-h-screen overflow-x-hidden bg-slate-50">
@@ -214,7 +293,6 @@ export default function PracticeSessionPage({
           <Header />
 
           <main className="w-full px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-            {/* BACK */}
             <button
               type="button"
               onClick={() => router.push("/questions")}
@@ -253,15 +331,24 @@ export default function PracticeSessionPage({
                   Try again
                 </button>
               </div>
-            ) : session ? (
+            ) : session && currentQuestion ? (
               <>
                 {/* SESSION HEADER */}
                 <section className="mb-6">
-                  <p className="mb-2 text-sm font-medium text-indigo-600">
-                    Practice Session
-                  </p>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <p className="text-sm font-medium text-indigo-600">
+                      Practice Session
+                    </p>
 
-                  <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                    {session.status === "COMPLETED" && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                        <CheckCircle2 size={13} />
+                        Completed
+                      </span>
+                    )}
+                  </div>
+
+                  <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
                     {session.topic}
                   </h1>
 
@@ -323,6 +410,35 @@ export default function PracticeSessionPage({
                       }}
                     />
                   </div>
+
+                  {/* QUESTION DOTS */}
+                  {session.questions.length > 1 && (
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {session.questions.map(
+                        (question, index) => (
+                          <button
+                            key={question.id}
+                            type="button"
+                            onClick={() =>
+                              setCurrentQuestionIndex(
+                                index,
+                              )
+                            }
+                            className={`flex h-8 min-w-8 items-center justify-center rounded-lg px-2 text-xs font-bold transition ${
+                              index ===
+                              currentQuestionIndex
+                                ? "bg-indigo-600 text-white"
+                                : question.answered
+                                  ? "bg-emerald-100 text-emerald-700"
+                                  : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                            }`}
+                          >
+                            {index + 1}
+                          </button>
+                        ),
+                      )}
+                    </div>
+                  )}
                 </section>
 
                 {pageError && (
@@ -331,188 +447,220 @@ export default function PracticeSessionPage({
                   </div>
                 )}
 
-                {/* QUESTIONS */}
-                <section className="space-y-5">
-                  {session.questions.map(
-                    (question, index) => (
-                      <article
-                        key={question.id}
-                        className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
-                      >
-                        <div className="border-b border-slate-100 p-4 sm:p-6">
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="min-w-0">
-                              <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">
-                                Question {index + 1}
+                {/* CURRENT QUESTION */}
+                <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                  <div className="border-b border-slate-100 p-4 sm:p-6">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">
+                          Question{" "}
+                          {currentQuestionIndex + 1} of{" "}
+                          {session.questions.length}
+                        </p>
+
+                        <h2 className="mt-2 break-words text-lg font-bold leading-7 text-slate-900">
+                          {currentQuestion.questionText}
+                        </h2>
+                      </div>
+
+                      {currentQuestion.answered && (
+                        <CheckCircle2
+                          size={22}
+                          className="shrink-0 text-emerald-500"
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="p-4 sm:p-6">
+                    <label className="mb-2 block text-sm font-semibold text-slate-700">
+                      Your Answer
+                    </label>
+
+                    <textarea
+                      value={
+                        answers[currentQuestion.id] ?? ""
+                      }
+                      disabled={
+                        currentQuestion.answered ||
+                        session.status === "COMPLETED"
+                      }
+                      onChange={(event) =>
+                        setAnswers((current) => ({
+                          ...current,
+                          [currentQuestion.id]:
+                            event.target.value,
+                        }))
+                      }
+                      maxLength={10000}
+                      rows={7}
+                      placeholder="Write your interview answer here..."
+                      className="w-full resize-y rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-800 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                    />
+
+                    {answerErrors[
+                      currentQuestion.id
+                    ] && (
+                      <p className="mt-2 text-sm text-red-600">
+                        {
+                          answerErrors[
+                            currentQuestion.id
+                          ]
+                        }
+                      </p>
+                    )}
+
+                    {!currentQuestion.answered &&
+                      session.status !==
+                        "COMPLETED" && (
+                        <button
+                          type="button"
+                          disabled={
+                            submittingQuestionId !==
+                            null
+                          }
+                          onClick={() =>
+                            handleSubmitAnswer(
+                              currentQuestion,
+                            )
+                          }
+                          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                        >
+                          {submittingQuestionId ===
+                          currentQuestion.id ? (
+                            <>
+                              <Loader2
+                                size={17}
+                                className="animate-spin"
+                              />
+                              Novis is evaluating...
+                            </>
+                          ) : (
+                            <>
+                              <Send size={17} />
+                              Submit to Novis
+                            </>
+                          )}
+                        </button>
+                      )}
+
+                    {/* NOVIS EVALUATION */}
+                    {currentQuestion.answered && (
+                      <div className="mt-6 rounded-2xl border border-indigo-100 bg-indigo-50/50 p-4 sm:p-5">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white">
+                              <BrainCircuit
+                                size={20}
+                              />
+                            </div>
+
+                            <div>
+                              <p className="text-sm font-bold text-slate-900">
+                                Novis Evaluation
                               </p>
 
-                              <h2 className="mt-2 break-words text-lg font-bold leading-7 text-slate-900">
-                                {question.questionText}
-                              </h2>
+                              <p className="text-xs text-slate-500">
+                                AI feedback on your
+                                answer
+                              </p>
                             </div>
-
-                            {question.answered && (
-                              <CheckCircle2
-                                size={22}
-                                className="shrink-0 text-emerald-500"
-                              />
-                            )}
                           </div>
+
+                          {currentQuestion.score !==
+                            null && (
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-2xl font-bold text-indigo-600">
+                                {
+                                  currentQuestion.score
+                                }
+                              </span>
+
+                              <span className="text-sm text-slate-500">
+                                / 10
+                              </span>
+                            </div>
+                          )}
                         </div>
 
-                        <div className="p-4 sm:p-6">
-                          <label className="mb-2 block text-sm font-semibold text-slate-700">
-                            Your Answer
-                          </label>
+                        {currentQuestion.feedback && (
+                          <div className="mt-5">
+                            <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                              Feedback
+                            </p>
 
-                          <textarea
-                            value={
-                              answers[question.id] ?? ""
-                            }
-                            disabled={
-                              question.answered ||
-                              session.status ===
-                                "COMPLETED"
-                            }
-                            onChange={(event) =>
-                              setAnswers((current) => ({
-                                ...current,
-                                [question.id]:
-                                  event.target.value,
-                              }))
-                            }
-                            maxLength={10000}
-                            rows={7}
-                            placeholder="Write your interview answer here..."
-                            className="w-full resize-y rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-800 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:bg-slate-100"
-                          />
-
-                          {answerErrors[question.id] && (
-                            <p className="mt-2 text-sm text-red-600">
+                            <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
                               {
-                                answerErrors[
-                                  question.id
-                                ]
+                                currentQuestion.feedback
                               }
                             </p>
-                          )}
+                          </div>
+                        )}
 
-                          {!question.answered &&
-                            session.status !==
-                              "COMPLETED" && (
-                              <button
-                                type="button"
-                                disabled={
-                                  submittingQuestionId !==
-                                  null
-                                }
-                                onClick={() =>
-                                  handleSubmitAnswer(
-                                    question,
-                                  )
-                                }
-                                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
-                              >
-                                {submittingQuestionId ===
-                                question.id ? (
-                                  <>
-                                    <Loader2
-                                      size={17}
-                                      className="animate-spin"
-                                    />
-                                    Novis is evaluating...
-                                  </>
-                                ) : (
-                                  <>
-                                    <Send size={17} />
-                                    Submit to Novis
-                                  </>
-                                )}
-                              </button>
-                            )}
+                        {currentQuestion.strengths && (
+                          <div className="mt-5 rounded-xl bg-emerald-50 p-4">
+                            <p className="text-sm font-bold text-emerald-700">
+                              Strengths
+                            </p>
 
-                          {/* NOVIS EVALUATION */}
-                          {question.answered && (
-                            <div className="mt-6 rounded-2xl border border-indigo-100 bg-indigo-50/50 p-4 sm:p-5">
-                              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                                <div className="flex items-center gap-3">
-                                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white">
-                                    <BrainCircuit
-                                      size={20}
-                                    />
-                                  </div>
+                            <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-emerald-800">
+                              {
+                                currentQuestion.strengths
+                              }
+                            </p>
+                          </div>
+                        )}
 
-                                  <div>
-                                    <p className="text-sm font-bold text-slate-900">
-                                      Novis Evaluation
-                                    </p>
+                        {currentQuestion.improvements && (
+                          <div className="mt-3 rounded-xl bg-amber-50 p-4">
+                            <p className="text-sm font-bold text-amber-700">
+                              Improvements
+                            </p>
 
-                                    <p className="text-xs text-slate-500">
-                                      AI feedback on your
-                                      answer
-                                    </p>
-                                  </div>
-                                </div>
+                            <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-amber-800">
+                              {
+                                currentQuestion.improvements
+                              }
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </article>
 
-                                {question.score !== null && (
-                                  <div className="flex items-baseline gap-1">
-                                    <span className="text-2xl font-bold text-indigo-600">
-                                      {question.score}
-                                    </span>
+                {/* QUESTION NAVIGATION */}
+                {session.questions.length > 1 && (
+                  <section className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <button
+                      type="button"
+                      disabled={isFirstQuestion}
+                      onClick={handlePreviousQuestion}
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
+                    >
+                      <ChevronLeft size={17} />
+                      Previous
+                    </button>
 
-                                    <span className="text-sm text-slate-500">
-                                      / 10
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
+                    <p className="text-center text-sm font-medium text-slate-500">
+                      Question{" "}
+                      {currentQuestionIndex + 1} of{" "}
+                      {session.questions.length}
+                    </p>
 
-                              {question.feedback && (
-                                <div className="mt-5">
-                                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                                    Feedback
-                                  </p>
+                    <button
+                      type="button"
+                      disabled={isLastQuestion}
+                      onClick={handleNextQuestion}
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
+                    >
+                      Next
+                      <ArrowRight size={17} />
+                    </button>
+                  </section>
+                )}
 
-                                  <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
-                                    {question.feedback}
-                                  </p>
-                                </div>
-                              )}
-
-                              {question.strengths && (
-                                <div className="mt-5 rounded-xl bg-emerald-50 p-4">
-                                  <p className="text-sm font-bold text-emerald-700">
-                                    Strengths
-                                  </p>
-
-                                  <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-emerald-800">
-                                    {question.strengths}
-                                  </p>
-                                </div>
-                              )}
-
-                              {question.improvements && (
-                                <div className="mt-3 rounded-xl bg-amber-50 p-4">
-                                  <p className="text-sm font-bold text-amber-700">
-                                    Improvements
-                                  </p>
-
-                                  <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-amber-800">
-                                    {
-                                      question.improvements
-                                    }
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </article>
-                    ),
-                  )}
-                </section>
-
-                {/* COMPLETE */}
+                {/* COMPLETE SESSION */}
                 {session.status !== "COMPLETED" && (
                   <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -524,7 +672,7 @@ export default function PracticeSessionPage({
                         <p className="mt-1 text-sm text-slate-500">
                           {allAnswered
                             ? "All questions are answered. Complete the session to see your final result."
-                            : "Answer all questions before completing the session."}
+                            : `${answeredQuestions} of ${session.questions.length} questions answered.`}
                         </p>
                       </div>
 
@@ -555,22 +703,44 @@ export default function PracticeSessionPage({
                   </section>
                 )}
 
-                {/* RESULT */}
+                {/* FINAL RESULT */}
                 {result && (
                   <section className="mt-6 rounded-2xl bg-slate-950 p-5 text-white shadow-sm sm:p-6">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-500">
-                      <Trophy size={23} />
+                    <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-500">
+                          <Trophy size={23} />
+                        </div>
+
+                        <p className="mt-5 text-sm font-medium text-indigo-300">
+                          Practice complete
+                        </p>
+
+                        <h2 className="mt-1 text-2xl font-bold">
+                          Session Result
+                        </h2>
+                      </div>
+
+                      {result.averageScore !== null && (
+                        <div className="rounded-2xl bg-indigo-500 px-6 py-4">
+                          <p className="text-xs font-medium text-indigo-100">
+                            Average Score
+                          </p>
+
+                          <div className="mt-1 flex items-baseline gap-1">
+                            <span className="text-3xl font-bold">
+                              {result.averageScore}
+                            </span>
+
+                            <span className="text-sm text-indigo-100">
+                              / 10
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
-                    <p className="mt-5 text-sm font-medium text-indigo-300">
-                      Practice complete
-                    </p>
-
-                    <h2 className="mt-1 text-2xl font-bold">
-                      Session Result
-                    </h2>
-
-                    <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
                       <div className="rounded-xl bg-white/10 p-4">
                         <p className="text-xs text-slate-400">
                           Questions
@@ -591,7 +761,7 @@ export default function PracticeSessionPage({
                         </p>
                       </div>
 
-                      <div className="rounded-xl bg-white/10 p-4">
+                      <div className="col-span-2 rounded-xl bg-white/10 p-4 sm:col-span-1">
                         <p className="text-xs text-slate-400">
                           Unanswered
                         </p>
@@ -600,29 +770,29 @@ export default function PracticeSessionPage({
                           {result.unansweredQuestions}
                         </p>
                       </div>
-
-                      <div className="rounded-xl bg-indigo-500 p-4">
-                        <p className="text-xs text-indigo-100">
-                          Average Score
-                        </p>
-
-                        <p className="mt-1 text-xl font-bold">
-                          {result.averageScore !== null
-                            ? `${result.averageScore}/10`
-                            : "—"}
-                        </p>
-                      </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() =>
-                        router.push("/questions")
-                      }
-                      className="mt-6 w-full rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-slate-100 sm:w-auto"
-                    >
-                      Back to Saved Questions
-                    </button>
+                    <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          router.push("/questions")
+                        }
+                        className="w-full rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-slate-100 sm:w-auto"
+                      >
+                        Practice Another Question
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          router.push("/dashboard")
+                        }
+                        className="w-full rounded-xl border border-white/20 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10 sm:w-auto"
+                      >
+                        Back to Dashboard
+                      </button>
+                    </div>
                   </section>
                 )}
               </>
