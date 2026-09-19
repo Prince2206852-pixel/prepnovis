@@ -62,6 +62,7 @@ export interface PracticeSessionDetail {
   questionType: QuestionType;
   totalQuestions: number;
   status: PracticeSessionStatus;
+  questionSource: QuestionSource;
   createdAt: string;
   questions: PracticeSessionQuestion[];
 }

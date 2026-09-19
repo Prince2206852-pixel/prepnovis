@@ -378,6 +378,7 @@ public PracticeSessionDetailResponse getSessionDetails(
     response.setStatus(session.getStatus());
     response.setCreatedAt(session.getCreatedAt());
     response.setQuestions(questionResponses);
+    response.setQuestionSource(session.getQuestionSource());
 
     return response;
 }

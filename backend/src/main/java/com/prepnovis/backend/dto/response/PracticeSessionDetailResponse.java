@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import com.prepnovis.backend.entity.QuestionSource;
 import com.prepnovis.backend.entity.enums.DifficultyLevel;
 import com.prepnovis.backend.entity.enums.PracticeSessionStatus;
 import com.prepnovis.backend.entity.enums.QuestionType;
@@ -19,6 +20,7 @@ public class PracticeSessionDetailResponse {
     private PracticeSessionStatus status;
     private LocalDateTime createdAt;
     private List<PracticeSessionQuestionResponse> questions;
+    private QuestionSource questionSource;
 
     public PracticeSessionDetailResponse() {
     }
@@ -94,4 +96,11 @@ public class PracticeSessionDetailResponse {
     public void setQuestions(List<PracticeSessionQuestionResponse> questions) {
         this.questions = questions;
     }
+    public QuestionSource getQuestionSource() {
+    return questionSource;
+}
+
+public void setQuestionSource(QuestionSource questionSource) {
+    this.questionSource = questionSource;
+}
 }
