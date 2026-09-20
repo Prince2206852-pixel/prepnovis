@@ -16,14 +16,57 @@ import PerformanceChart from "@/features/dashboard/PerformanceChart";
 import RecentSessions from "@/features/dashboard/RecentSessions";
 import StatCard from "@/features/dashboard/StatCard";
 import { AuthUser, getAuthUser } from "@/lib/auth";
+import { getAnalyticsDashboard } from "@/services/analyticsService";
+import { AnalyticsDashboard } from "@/types/analytics";
 
 export default function DashboardPage() {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [analytics, setAnalytics] =
+    useState<AnalyticsDashboard | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(true);
+  const [analyticsError, setAnalyticsError] = useState("");
+
   const router = useRouter();
 
   useEffect(() => {
     setUser(getAuthUser());
+
+    async function loadAnalytics() {
+      try {
+        setAnalyticsLoading(true);
+        setAnalyticsError("");
+
+        const data = await getAnalyticsDashboard();
+        setAnalytics(data);
+      } catch (error) {
+        setAnalyticsError(
+          error instanceof Error
+            ? error.message
+            : "Unable to load your analytics."
+        );
+      } finally {
+        setAnalyticsLoading(false);
+      }
+    }
+
+    void loadAnalytics();
   }, []);
+
+  const averageScore = analytics?.averageScore ?? 0;
+  const highestScore = analytics?.highestScore ?? 0;
+
+  const savedAverage = analytics?.savedQuestionsAverageScore ?? 0;
+  const mockAverage = analytics?.prepNovisMockAverageScore ?? 0;
+
+  const savedProgress = Math.min(
+    100,
+    Math.max(0, savedAverage * 10)
+  );
+
+  const mockProgress = Math.min(
+    100,
+    Math.max(0, mockAverage * 10)
+  );
 
   return (
     <AuthGuard>
@@ -72,32 +115,55 @@ export default function DashboardPage() {
               </div>
             </section>
 
+            {/* ANALYTICS ERROR */}
+            {analyticsError && (
+              <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {analyticsError}
+              </div>
+            )}
+
             {/* STATS */}
             <section className="mb-6 grid grid-cols-1 gap-4 sm:mb-8 sm:grid-cols-2 sm:gap-5 xl:grid-cols-4">
               <StatCard
                 title="Total Sessions"
-                value={24}
+                value={
+                  analyticsLoading
+                    ? "..."
+                    : analytics?.totalSessions ?? 0
+                }
                 description="Practice sessions started"
                 icon={Target}
               />
 
               <StatCard
                 title="Questions Answered"
-                value={142}
+                value={
+                  analyticsLoading
+                    ? "..."
+                    : analytics?.totalQuestionsAnswered ?? 0
+                }
                 description="Across saved and mock sessions"
                 icon={BookOpen}
               />
 
               <StatCard
                 title="Average Score"
-                value="7.8"
+                value={
+                  analyticsLoading
+                    ? "..."
+                    : averageScore.toFixed(1)
+                }
                 description="Average Novis evaluation score"
                 icon={BrainCircuit}
               />
 
               <StatCard
                 title="Best Score"
-                value="9.2"
+                value={
+                  analyticsLoading
+                    ? "..."
+                    : highestScore.toFixed(1)
+                }
                 description="Your highest evaluation score"
                 icon={Trophy}
               />
@@ -106,7 +172,9 @@ export default function DashboardPage() {
             {/* PERFORMANCE */}
             <section className="mb-6 grid min-w-0 grid-cols-1 gap-5 sm:mb-8 sm:gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
               <div className="min-w-0 overflow-hidden">
-                <PerformanceChart />
+                <PerformanceChart
+                  sessions={analytics?.recentSessions ?? []}
+                />
               </div>
 
               <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
@@ -135,18 +203,29 @@ export default function DashboardPage() {
                           </p>
 
                           <p className="text-xs text-slate-500">
-                            Your personal question bank
+                            {analyticsLoading
+                              ? "Loading..."
+                              : `${
+                                  analytics?.savedQuestionsAnswered ?? 0
+                                } answered`}
                           </p>
                         </div>
                       </div>
 
                       <span className="shrink-0 text-lg font-bold text-slate-900">
-                        7.5
+                        {analyticsLoading
+                          ? "..."
+                          : `${savedAverage.toFixed(1)}/10`}
                       </span>
                     </div>
 
                     <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-                      <div className="h-full w-[75%] rounded-full bg-emerald-500" />
+                      <div
+                        className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+                        style={{
+                          width: `${savedProgress}%`,
+                        }}
+                      />
                     </div>
                   </div>
 
@@ -164,30 +243,48 @@ export default function DashboardPage() {
                           </p>
 
                           <p className="text-xs text-slate-500">
-                            Fresh mock interview questions
+                            {analyticsLoading
+                              ? "Loading..."
+                              : `${
+                                  analytics
+                                    ?.prepNovisMockQuestionsAnswered ?? 0
+                                } answered`}
                           </p>
                         </div>
                       </div>
 
                       <span className="shrink-0 text-lg font-bold text-slate-900">
-                        8.2
+                        {analyticsLoading
+                          ? "..."
+                          : `${mockAverage.toFixed(1)}/10`}
                       </span>
                     </div>
 
                     <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-                      <div className="h-full w-[82%] rounded-full bg-indigo-500" />
+                      <div
+                        className="h-full rounded-full bg-indigo-500 transition-all duration-500"
+                        style={{
+                          width: `${mockProgress}%`,
+                        }}
+                      />
                     </div>
                   </div>
                 </div>
 
                 <div className="mt-7 rounded-xl bg-slate-50 p-4">
                   <p className="text-sm font-semibold text-slate-900">
-                    Novis insight
+                    Performance snapshot
                   </p>
 
                   <p className="mt-1 text-sm leading-6 text-slate-500">
-                    Your mock interview performance is improving. Keep focusing
-                    on concise explanations and practical examples.
+                    {analyticsLoading
+                      ? "Loading your practice performance..."
+                      : analytics &&
+                          analytics.totalQuestionsAnswered > 0
+                        ? `You have answered ${analytics.totalQuestionsAnswered} questions with an overall average score of ${averageScore.toFixed(
+                            1
+                          )}/10.`
+                        : "Complete your first practice session to start building your performance history."}
                   </p>
                 </div>
               </div>
@@ -196,7 +293,9 @@ export default function DashboardPage() {
             {/* RECENT + NOVIS */}
             <section className="grid min-w-0 grid-cols-1 gap-5 sm:gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
               <div className="min-w-0 overflow-hidden">
-                <RecentSessions />
+                <RecentSessions
+                  sessions={analytics?.recentSessions ?? []}
+                />
               </div>
 
               <div className="min-w-0 rounded-2xl bg-slate-950 p-5 text-white shadow-sm sm:p-6">
