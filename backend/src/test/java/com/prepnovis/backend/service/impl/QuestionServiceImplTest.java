@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
@@ -17,31 +18,45 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.prepnovis.backend.dto.request.QuestionRequest;
 import com.prepnovis.backend.dto.response.QuestionResponse;
 import com.prepnovis.backend.entity.Question;
+import com.prepnovis.backend.entity.User;
 import com.prepnovis.backend.entity.enums.DifficultyLevel;
 import com.prepnovis.backend.entity.enums.QuestionType;
 import com.prepnovis.backend.exception.QuestionNotFoundException;
 import com.prepnovis.backend.repository.QuestionRepository;
+import com.prepnovis.backend.repository.UserRepository;
 
 @ExtendWith(MockitoExtension.class)
 class QuestionServiceImplTest {
 
+    private static final String EMAIL = "prince@test.com";
+
     @Mock
     private QuestionRepository questionRepository;
+
+    @Mock
+    private UserRepository userRepository;
 
     @InjectMocks
     private QuestionServiceImpl questionService;
 
+    private User user;
+
+    @BeforeEach
+    void setUp() {
+
+        user = new User();
+        user.setId(UUID.randomUUID());
+        user.setEmail(EMAIL);
+        user.setFullName("Prince Kumar");
+    }
+
     @Test
     void createQuestion_ShouldCreateQuestionSuccessfully() {
 
-        QuestionRequest request = new QuestionRequest();
-        request.setQuestionText("What is dependency injection?");
-        request.setAnswer("Dependency injection provides required dependencies from outside.");
-        request.setCategory("Java");
-        request.setTopic("Spring Boot");
-        request.setQuestionType(QuestionType.TECHNICAL);
-        request.setDifficultyLevel(DifficultyLevel.MEDIUM);
-        request.setTags("spring,di");
+        QuestionRequest request = createQuestionRequest();
+
+        when(userRepository.findByEmail(EMAIL))
+                .thenReturn(Optional.of(user));
 
         when(questionRepository.save(any(Question.class)))
                 .thenAnswer(invocation -> {
@@ -53,7 +68,10 @@ class QuestionServiceImplTest {
                 });
 
         QuestionResponse response =
-                questionService.createQuestion(request);
+                questionService.createQuestion(
+                        EMAIL,
+                        request
+                );
 
         assertEquals(
                 "What is dependency injection?",
@@ -67,156 +85,286 @@ class QuestionServiceImplTest {
 
         assertEquals("Java", response.getCategory());
         assertEquals("Spring Boot", response.getTopic());
+
         assertEquals(
                 QuestionType.TECHNICAL,
                 response.getQuestionType()
         );
+
         assertEquals(
                 DifficultyLevel.MEDIUM,
                 response.getDifficultyLevel()
         );
+
         assertEquals("spring,di", response.getTags());
+
+        verify(userRepository)
+                .findByEmail(EMAIL);
 
         verify(questionRepository)
                 .save(any(Question.class));
     }
 
     @Test
-void getQuestionById_ShouldReturnQuestionSuccessfully() {
+    void getQuestionById_ShouldReturnQuestionSuccessfully() {
 
-    UUID questionId = UUID.randomUUID();
+        UUID questionId = UUID.randomUUID();
 
-    Question question = new Question();
-    question.setId(questionId);
-    question.setQuestionText("What is dependency injection?");
-    question.setAnswer("Dependency injection provides dependencies from outside.");
-    question.setCategory("Java");
-    question.setTopic("Spring Boot");
-    question.setQuestionType(QuestionType.TECHNICAL);
-    question.setDifficultyLevel(DifficultyLevel.MEDIUM);
-    question.setTags("spring,di");
+        Question question =
+                createQuestion(questionId);
 
-    when(questionRepository.findById(questionId))
-            .thenReturn(Optional.of(question));
+        when(userRepository.findByEmail(EMAIL))
+                .thenReturn(Optional.of(user));
 
-    QuestionResponse response =
-            questionService.getQuestionById(questionId);
+        when(questionRepository.findByIdAndUserId(
+                questionId,
+                user.getId()))
+                .thenReturn(Optional.of(question));
 
-    assertEquals(questionId, response.getId());
-    assertEquals(
-            "What is dependency injection?",
-            response.getQuestionText()
-    );
-    assertEquals("Java", response.getCategory());
-    assertEquals("Spring Boot", response.getTopic());
-    assertEquals(
-            QuestionType.TECHNICAL,
-            response.getQuestionType()
-    );
-    assertEquals(
-            DifficultyLevel.MEDIUM,
-            response.getDifficultyLevel()
-    );
+        QuestionResponse response =
+                questionService.getQuestionById(
+                        EMAIL,
+                        questionId
+                );
 
-    verify(questionRepository)
-            .findById(questionId);
-}
-@Test
-void getQuestionById_ShouldThrowException_WhenQuestionDoesNotExist() {
+        assertEquals(questionId, response.getId());
 
-    UUID questionId = UUID.randomUUID();
+        assertEquals(
+                "What is dependency injection?",
+                response.getQuestionText()
+        );
 
-    when(questionRepository.findById(questionId))
-            .thenReturn(Optional.empty());
+        assertEquals("Java", response.getCategory());
+        assertEquals("Spring Boot", response.getTopic());
 
-    QuestionNotFoundException exception =
-            assertThrows(
-                    QuestionNotFoundException.class,
-                    () -> questionService.getQuestionById(questionId)
-            );
+        assertEquals(
+                QuestionType.TECHNICAL,
+                response.getQuestionType()
+        );
 
-    assertEquals(
-            "Question not found.",
-            exception.getMessage()
-    );
+        assertEquals(
+                DifficultyLevel.MEDIUM,
+                response.getDifficultyLevel()
+        );
 
-    verify(questionRepository)
-            .findById(questionId);
-}
-@Test
-void updateQuestion_ShouldUpdateQuestionSuccessfully() {
+        verify(userRepository)
+                .findByEmail(EMAIL);
 
-    UUID questionId = UUID.randomUUID();
+        verify(questionRepository)
+                .findByIdAndUserId(
+                        questionId,
+                        user.getId()
+                );
+    }
 
-    Question existingQuestion = new Question();
-    existingQuestion.setId(questionId);
-    existingQuestion.setQuestionText("Old question");
-    existingQuestion.setAnswer("Old answer");
-    existingQuestion.setCategory("Java");
-    existingQuestion.setTopic("Core Java");
-    existingQuestion.setQuestionType(QuestionType.TECHNICAL);
-    existingQuestion.setDifficultyLevel(DifficultyLevel.EASY);
-    existingQuestion.setTags("java");
+    @Test
+    void getQuestionById_ShouldThrowException_WhenQuestionDoesNotExist() {
 
-    QuestionRequest request = new QuestionRequest();
-    request.setQuestionText("What is dependency injection?");
-    request.setAnswer("Dependencies are provided from outside.");
-    request.setCategory("Java");
-    request.setTopic("Spring Boot");
-    request.setQuestionType(QuestionType.TECHNICAL);
-    request.setDifficultyLevel(DifficultyLevel.MEDIUM);
-    request.setTags("spring,di");
+        UUID questionId = UUID.randomUUID();
 
-    when(questionRepository.findById(questionId))
-            .thenReturn(Optional.of(existingQuestion));
+        when(userRepository.findByEmail(EMAIL))
+                .thenReturn(Optional.of(user));
 
-    when(questionRepository.save(any(Question.class)))
-            .thenAnswer(invocation -> invocation.getArgument(0));
+        when(questionRepository.findByIdAndUserId(
+                questionId,
+                user.getId()))
+                .thenReturn(Optional.empty());
 
-    QuestionResponse response =
-            questionService.updateQuestion(questionId, request);
+        QuestionNotFoundException exception =
+                assertThrows(
+                        QuestionNotFoundException.class,
+                        () -> questionService.getQuestionById(
+                                EMAIL,
+                                questionId
+                        )
+                );
 
-    assertEquals(questionId, response.getId());
-    assertEquals(
-            "What is dependency injection?",
-            response.getQuestionText()
-    );
-    assertEquals(
-            "Dependencies are provided from outside.",
-            response.getAnswer()
-    );
-    assertEquals("Spring Boot", response.getTopic());
-    assertEquals(
-            DifficultyLevel.MEDIUM,
-            response.getDifficultyLevel()
-    );
-    assertEquals("spring,di", response.getTags());
+        assertEquals(
+                "Question not found.",
+                exception.getMessage()
+        );
 
-    verify(questionRepository)
-            .findById(questionId);
+        verify(userRepository)
+                .findByEmail(EMAIL);
 
-    verify(questionRepository)
-            .save(existingQuestion);
-}
-@Test
-void deleteQuestion_ShouldDeleteQuestionSuccessfully() {
+        verify(questionRepository)
+                .findByIdAndUserId(
+                        questionId,
+                        user.getId()
+                );
+    }
 
-    UUID questionId = UUID.randomUUID();
+    @Test
+    void updateQuestion_ShouldUpdateQuestionSuccessfully() {
 
-    Question question = new Question();
-    question.setId(questionId);
-    question.setQuestionText("What is dependency injection?");
+        UUID questionId = UUID.randomUUID();
 
-    when(questionRepository.findById(questionId))
-            .thenReturn(Optional.of(question));
+        Question existingQuestion = new Question();
+        existingQuestion.setId(questionId);
+        existingQuestion.setUser(user);
+        existingQuestion.setQuestionText("Old question");
+        existingQuestion.setAnswer("Old answer");
+        existingQuestion.setCategory("Java");
+        existingQuestion.setTopic("Core Java");
+        existingQuestion.setQuestionType(
+                QuestionType.TECHNICAL
+        );
+        existingQuestion.setDifficultyLevel(
+                DifficultyLevel.EASY
+        );
+        existingQuestion.setTags("java");
 
-    questionService.deleteQuestion(questionId);
+        QuestionRequest request =
+                createQuestionRequest();
 
-    verify(questionRepository)
-            .findById(questionId);
+        when(userRepository.findByEmail(EMAIL))
+                .thenReturn(Optional.of(user));
 
-    verify(questionRepository)
-            .delete(question);
-}
+        when(questionRepository.findByIdAndUserId(
+                questionId,
+                user.getId()))
+                .thenReturn(Optional.of(existingQuestion));
 
+        when(questionRepository.save(any(Question.class)))
+                .thenAnswer(invocation ->
+                        invocation.getArgument(0)
+                );
+
+        QuestionResponse response =
+                questionService.updateQuestion(
+                        EMAIL,
+                        questionId,
+                        request
+                );
+
+        assertEquals(questionId, response.getId());
+
+        assertEquals(
+                "What is dependency injection?",
+                response.getQuestionText()
+        );
+
+        assertEquals(
+                "Dependency injection provides required dependencies from outside.",
+                response.getAnswer()
+        );
+
+        assertEquals(
+                "Spring Boot",
+                response.getTopic()
+        );
+
+        assertEquals(
+                DifficultyLevel.MEDIUM,
+                response.getDifficultyLevel()
+        );
+
+        assertEquals(
+                "spring,di",
+                response.getTags()
+        );
+
+        verify(userRepository)
+                .findByEmail(EMAIL);
+
+        verify(questionRepository)
+                .findByIdAndUserId(
+                        questionId,
+                        user.getId()
+                );
+
+        verify(questionRepository)
+                .save(existingQuestion);
+    }
+
+    @Test
+    void deleteQuestion_ShouldDeleteQuestionSuccessfully() {
+
+        UUID questionId = UUID.randomUUID();
+
+        Question question =
+                createQuestion(questionId);
+
+        when(userRepository.findByEmail(EMAIL))
+                .thenReturn(Optional.of(user));
+
+        when(questionRepository.findByIdAndUserId(
+                questionId,
+                user.getId()))
+                .thenReturn(Optional.of(question));
+
+        questionService.deleteQuestion(
+                EMAIL,
+                questionId
+        );
+
+        verify(userRepository)
+                .findByEmail(EMAIL);
+
+        verify(questionRepository)
+                .findByIdAndUserId(
+                        questionId,
+                        user.getId()
+                );
+
+        verify(questionRepository)
+                .delete(question);
+    }
+
+    private QuestionRequest createQuestionRequest() {
+
+        QuestionRequest request =
+                new QuestionRequest();
+
+        request.setQuestionText(
+                "What is dependency injection?"
+        );
+
+        request.setAnswer(
+                "Dependency injection provides required dependencies from outside."
+        );
+
+        request.setCategory("Java");
+        request.setTopic("Spring Boot");
+        request.setQuestionType(
+                QuestionType.TECHNICAL
+        );
+        request.setDifficultyLevel(
+                DifficultyLevel.MEDIUM
+        );
+        request.setTags("spring,di");
+
+        return request;
+    }
+
+    private Question createQuestion(UUID questionId) {
+
+        Question question = new Question();
+
+        question.setId(questionId);
+        question.setUser(user);
+
+        question.setQuestionText(
+                "What is dependency injection?"
+        );
+
+        question.setAnswer(
+                "Dependency injection provides dependencies from outside."
+        );
+
+        question.setCategory("Java");
+        question.setTopic("Spring Boot");
+
+        question.setQuestionType(
+                QuestionType.TECHNICAL
+        );
+
+        question.setDifficultyLevel(
+                DifficultyLevel.MEDIUM
+        );
+
+        question.setTags("spring,di");
+
+        return question;
+    }
 }

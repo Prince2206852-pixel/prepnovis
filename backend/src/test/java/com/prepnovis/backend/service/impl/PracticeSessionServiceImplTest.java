@@ -110,12 +110,13 @@ class PracticeSessionServiceImplTest {
                 });
 
         when(questionRepository
-                .findByCategoryIgnoreCaseAndTopicIgnoreCaseAndDifficultyLevelAndQuestionType(
-                        request.getCategory(),
-                        request.getTopic(),
-                        request.getDifficultyLevel(),
-                        request.getQuestionType()))
-                .thenReturn(List.of(question1, question2));
+        .findByUserIdAndCategoryIgnoreCaseAndTopicIgnoreCaseAndDifficultyLevelAndQuestionType(
+                user.getId(),
+                request.getCategory(),
+                request.getTopic(),
+                request.getDifficultyLevel(),
+                request.getQuestionType()))
+        .thenReturn(List.of(question1, question2));
 
         PracticeSessionResponse response =
                 practiceSessionService.startSession(
@@ -155,12 +156,13 @@ class PracticeSessionServiceImplTest {
                 });
 
         when(questionRepository
-                .findByCategoryIgnoreCaseAndTopicIgnoreCaseAndDifficultyLevelAndQuestionType(
-                        request.getCategory(),
-                        request.getTopic(),
-                        request.getDifficultyLevel(),
-                        request.getQuestionType()))
-                .thenReturn(List.of(question));
+        .findByUserIdAndCategoryIgnoreCaseAndTopicIgnoreCaseAndDifficultyLevelAndQuestionType(
+                user.getId(),
+                request.getCategory(),
+                request.getTopic(),
+                request.getDifficultyLevel(),
+                request.getQuestionType()))
+        .thenReturn(List.of(question));
 
         PracticeSessionResponse response =
                 practiceSessionService.startSession(
@@ -249,12 +251,13 @@ class PracticeSessionServiceImplTest {
                 .save(any(PracticeSessionQuestion.class));
 
         verify(questionRepository, never())
-                .findByCategoryIgnoreCaseAndTopicIgnoreCaseAndDifficultyLevelAndQuestionType(
-                        any(),
-                        any(),
-                        any(),
-                        any()
-                );
+        .findByUserIdAndCategoryIgnoreCaseAndTopicIgnoreCaseAndDifficultyLevelAndQuestionType(
+                any(),
+                any(),
+                any(),
+                any(),
+                any()
+        );
     }
 
     @Test
