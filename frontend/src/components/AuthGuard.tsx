@@ -14,18 +14,24 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    if (!isAuthenticated()) {
-      router.replace("/login");
-      return;
-    }
+    const checkSession = async () => {
+      if (!isAuthenticated()) {
+        router.replace("/login");
+        return;
+      }
 
-    setIsChecking(false);
+      setIsChecking(false);
+    };
+
+    void checkSession();
   }, [router]);
 
   if (isChecking) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
-        <p className="text-sm text-slate-500">Checking session...</p>
+        <p className="text-sm text-slate-500">
+          Checking session...
+        </p>
       </div>
     );
   }

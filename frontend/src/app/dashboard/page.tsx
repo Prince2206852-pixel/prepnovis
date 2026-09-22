@@ -15,12 +15,13 @@ import Sidebar from "@/components/Sidebar";
 import PerformanceChart from "@/features/dashboard/PerformanceChart";
 import RecentSessions from "@/features/dashboard/RecentSessions";
 import StatCard from "@/features/dashboard/StatCard";
-import { AuthUser, getAuthUser } from "@/lib/auth";
+import { getAuthUser } from "@/lib/auth";
 import { getAnalyticsDashboard } from "@/services/analyticsService";
 import { AnalyticsDashboard } from "@/types/analytics";
 
 export default function DashboardPage() {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const user = getAuthUser();
+
   const [analytics, setAnalytics] =
     useState<AnalyticsDashboard | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
@@ -29,8 +30,6 @@ export default function DashboardPage() {
   const router = useRouter();
 
   useEffect(() => {
-    setUser(getAuthUser());
-
     async function loadAnalytics() {
       try {
         setAnalyticsLoading(true);

@@ -42,17 +42,17 @@ function VerifyEmailContent() {
 
     const token = searchParams.get("token");
 
-    if (!token) {
-      setStatus("error");
-      setMessage(
-        "This verification link is invalid. Please request a new verification email.",
-      );
-      return;
-    }
-
     async function verify() {
+      if (!token) {
+        setStatus("error");
+        setMessage(
+          "This verification link is invalid. Please request a new verification email.",
+        );
+        return;
+      }
+
       try {
-        await verifyEmail(token!);
+        await verifyEmail(token);
 
         setStatus("success");
         setMessage(
@@ -71,7 +71,7 @@ function VerifyEmailContent() {
       }
     }
 
-    verify();
+    void verify();
   }, [searchParams]);
 
   return (
@@ -180,7 +180,7 @@ function VerifyEmailContent() {
                 </p>
 
                 <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
-                  We couldn't verify this link
+                  We couldn&apos;t verify this link
                 </h2>
 
                 <p className="mt-3 text-sm leading-6 text-slate-500">

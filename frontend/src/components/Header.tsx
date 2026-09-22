@@ -1,16 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Bell, Search } from "lucide-react";
 
-import { AuthUser, getAuthUser } from "@/lib/auth";
+import { getAuthUser } from "@/lib/auth";
 
 export default function Header() {
-  const [user, setUser] = useState<AuthUser | null>(null);
-
-  useEffect(() => {
-    setUser(getAuthUser());
-  }, []);
+  const user = getAuthUser();
 
   const initials = user?.fullName
     ? user.fullName

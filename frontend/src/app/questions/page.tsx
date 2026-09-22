@@ -160,8 +160,14 @@ export default function SavedQuestionsPage() {
   ]);
 
   useEffect(() => {
-    loadQuestions();
-  }, [loadQuestions]);
+  const timeoutId = window.setTimeout(() => {
+    void loadQuestions();
+  }, 0);
+
+  return () => {
+    window.clearTimeout(timeoutId);
+  };
+}, [loadQuestions]);
 
   function handleFilterSubmit(
     event: FormEvent<HTMLFormElement>,

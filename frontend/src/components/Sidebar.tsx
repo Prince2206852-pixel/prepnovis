@@ -46,15 +46,89 @@ const navigationItems = [
   },
 ];
 
+type SidebarContentProps = {
+  pathname: string;
+  onClose: () => void;
+  onLogout: () => void;
+};
+
+function SidebarContent({
+  pathname,
+  onClose,
+  onLogout,
+}: SidebarContentProps) {
+  return (
+    <>
+      <div className="mb-8 flex items-center justify-between px-3">
+        <Link href="/dashboard" onClick={onClose}>
+          <PrepNovisLogo size={44} />
+        </Link>
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-900 hover:text-white lg:hidden"
+          aria-label="Close navigation"
+        >
+          <X size={22} />
+        </button>
+      </div>
+
+      <nav className="flex flex-1 flex-col gap-2">
+        {navigationItems.map((item) => {
+          const Icon = item.icon;
+
+          const isActive =
+            pathname === item.href ||
+            (item.href !== "/dashboard" &&
+              pathname.startsWith(`${item.href}/`));
+
+          return (
+            <Link
+              key={item.name}
+              href={item.href}
+              onClick={onClose}
+              className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${
+                isActive
+                  ? "bg-indigo-500 text-white shadow-lg shadow-indigo-950/20"
+                  : "text-slate-400 hover:bg-slate-900 hover:text-white"
+              }`}
+            >
+              <Icon size={19} className="shrink-0" />
+              <span>{item.name}</span>
+            </Link>
+          );
+        })}
+      </nav>
+
+      <div className="border-t border-slate-800 pt-4">
+        <Link
+          href="/settings"
+          onClick={onClose}
+          className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-400 transition hover:bg-slate-900 hover:text-white"
+        >
+          <Settings size={19} className="shrink-0" />
+          <span>Settings</span>
+        </Link>
+
+        <button
+          type="button"
+          onClick={onLogout}
+          className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-400 transition hover:bg-slate-900 hover:text-white"
+        >
+          <LogOut size={19} className="shrink-0" />
+          <span>Logout</span>
+        </button>
+      </div>
+    </>
+  );
+}
+
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
 
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
 
   useEffect(() => {
     if (mobileOpen) {
@@ -68,76 +142,14 @@ export default function Sidebar() {
     };
   }, [mobileOpen]);
 
+  function handleClose() {
+    setMobileOpen(false);
+  }
+
   function handleLogout() {
     clearAuthSession();
     setMobileOpen(false);
     router.push("/login");
-  }
-
-  function SidebarContent() {
-    return (
-      <>
-        <div className="mb-8 flex items-center justify-between px-3">
-          <Link href="/dashboard">
-            <PrepNovisLogo size={44} />
-          </Link>
-
-          <button
-            type="button"
-            onClick={() => setMobileOpen(false)}
-            className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-900 hover:text-white lg:hidden"
-            aria-label="Close navigation"
-          >
-            <X size={22} />
-          </button>
-        </div>
-
-        <nav className="flex flex-1 flex-col gap-2">
-          {navigationItems.map((item) => {
-            const Icon = item.icon;
-
-            const isActive =
-              pathname === item.href ||
-              (item.href !== "/dashboard" &&
-                pathname.startsWith(`${item.href}/`));
-
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${
-                  isActive
-                    ? "bg-indigo-500 text-white shadow-lg shadow-indigo-950/20"
-                    : "text-slate-400 hover:bg-slate-900 hover:text-white"
-                }`}
-              >
-                <Icon size={19} className="shrink-0" />
-                <span>{item.name}</span>
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="border-t border-slate-800 pt-4">
-          <Link
-            href="/settings"
-            className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-400 transition hover:bg-slate-900 hover:text-white"
-          >
-            <Settings size={19} className="shrink-0" />
-            <span>Settings</span>
-          </Link>
-
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-400 transition hover:bg-slate-900 hover:text-white"
-          >
-            <LogOut size={19} className="shrink-0" />
-            <span>Logout</span>
-          </button>
-        </div>
-      </>
-    );
   }
 
   return (
@@ -154,7 +166,11 @@ export default function Sidebar() {
 
       {/* DESKTOP SIDEBAR */}
       <aside className="fixed left-0 top-0 z-40 hidden h-screen w-64 flex-col bg-slate-950 px-4 py-6 text-white lg:flex">
-        <SidebarContent />
+        <SidebarContent
+          pathname={pathname}
+          onClose={handleClose}
+          onLogout={handleLogout}
+        />
       </aside>
 
       {/* MOBILE OVERLAY */}
@@ -162,7 +178,7 @@ export default function Sidebar() {
         <button
           type="button"
           aria-label="Close navigation"
-          onClick={() => setMobileOpen(false)}
+          onClick={handleClose}
           className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-sm lg:hidden"
         />
       )}
@@ -173,7 +189,11 @@ export default function Sidebar() {
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <SidebarContent />
+        <SidebarContent
+          pathname={pathname}
+          onClose={handleClose}
+          onLogout={handleLogout}
+        />
       </aside>
     </>
   );
