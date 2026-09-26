@@ -10,6 +10,11 @@ export type QuestionType =
 
 export type Question = {
   id: string;
+
+  // Permanent user-facing saved-question number.
+  // Example: #1, #2, #3...
+  questionNumber: number;
+
   questionText: string;
   answer: string | null;
   category: string;
@@ -34,6 +39,13 @@ export type QuestionRequest = {
 export type QuestionFilters = {
   page?: number;
   size?: number;
+
+  // Search supports:
+  // #25 -> exact question number
+  // 25  -> exact question number
+  // kafka / spring / etc. -> keyword search
+  search?: string;
+
   category?: string;
   topic?: string;
   difficultyLevel?: DifficultyLevel;

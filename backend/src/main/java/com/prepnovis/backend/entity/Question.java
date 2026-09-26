@@ -16,9 +16,22 @@ import jakarta.persistence.Table;
 @Entity
 @Table(name = "questions")
 public class Question extends BaseEntity {
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
+
+    /**
+     * Permanent user-facing question number.
+     *
+     * Example:
+     * User A -> #1, #2, #3...
+     * User B -> #1, #2, #3...
+     *
+     * Once assigned, this number should never change.
+     */
+    @Column(name = "question_number", nullable = false)
+    private Long questionNumber;
 
     @Column(nullable = false, length = 2000)
     private String questionText;
@@ -44,12 +57,20 @@ public class Question extends BaseEntity {
     private String tags;
 
     public User getUser() {
-    return user;
+        return user;
     }
 
     public void setUser(User user) {
-    this.user = user;
-    }   
+        this.user = user;
+    }
+
+    public Long getQuestionNumber() {
+        return questionNumber;
+    }
+
+    public void setQuestionNumber(Long questionNumber) {
+        this.questionNumber = questionNumber;
+    }
 
     public String getQuestionText() {
         return questionText;

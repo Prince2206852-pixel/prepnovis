@@ -8,7 +8,19 @@ import com.prepnovis.backend.entity.Question;
 import com.prepnovis.backend.entity.enums.DifficultyLevel;
 import com.prepnovis.backend.entity.enums.QuestionType;
 
-public class QuestionSpecification {
+public final class QuestionSpecification {
+
+    private QuestionSpecification() {
+    }
+
+    public static Specification<Question> belongsToUser(UUID userId) {
+
+        return (root, query, criteriaBuilder) ->
+                criteriaBuilder.equal(
+                        root.get("user").get("id"),
+                        userId
+                );
+    }
 
     public static Specification<Question> hasCategory(String category) {
 
@@ -20,7 +32,7 @@ public class QuestionSpecification {
 
             return criteriaBuilder.equal(
                     criteriaBuilder.lower(root.get("category")),
-                    category.toLowerCase()
+                    category.trim().toLowerCase()
             );
         };
     }
@@ -35,7 +47,7 @@ public class QuestionSpecification {
 
             return criteriaBuilder.equal(
                     criteriaBuilder.lower(root.get("topic")),
-                    topic.toLowerCase()
+                    topic.trim().toLowerCase()
             );
         };
     }
@@ -71,13 +83,76 @@ public class QuestionSpecification {
             );
         };
     }
-    public static Specification<Question> belongsToUser(UUID userId) {
 
-    return (root, query, criteriaBuilder) ->
-            criteriaBuilder.equal(
-                    root.get("user").get("id"),
-                    userId
+    /**
+     * Searches the user's saved questions using a general keyword.
+     *
+     * Supported text fields:
+     * - question text
+     * - category
+     * - topic
+     * - tags
+     *
+     * Question-number search (#25 / 25) is handled separately
+     * so that it remains an exact numeric search.
+     */
+    public static Specification<Question> containsKeyword(
+            String keyword) {
+
+        return (root, query, criteriaBuilder) -> {
+
+            if (keyword == null || keyword.isBlank()) {
+                return criteriaBuilder.conjunction();
+            }
+
+            String searchValue =
+                    "%" + keyword.trim().toLowerCase() + "%";
+
+            return criteriaBuilder.or(
+                    criteriaBuilder.like(
+                            criteriaBuilder.lower(
+                                    root.get("questionText")
+                            ),
+                            searchValue
+                    ),
+                    criteriaBuilder.like(
+                            criteriaBuilder.lower(
+                                    root.get("category")
+                            ),
+                            searchValue
+                    ),
+                    criteriaBuilder.like(
+                            criteriaBuilder.lower(
+                                    root.get("topic")
+                            ),
+                            searchValue
+                    ),
+                    criteriaBuilder.like(
+                            criteriaBuilder.lower(
+                                    root.get("tags")
+                            ),
+                            searchValue
+                    )
             );
-}
+        };
+    }
 
+    /**
+     * Exact search using the permanent saved-question number.
+     */
+    public static Specification<Question> hasQuestionNumber(
+            Long questionNumber) {
+
+        return (root, query, criteriaBuilder) -> {
+
+            if (questionNumber == null) {
+                return criteriaBuilder.conjunction();
+            }
+
+            return criteriaBuilder.equal(
+                    root.get("questionNumber"),
+                    questionNumber
+            );
+        };
+    }
 }

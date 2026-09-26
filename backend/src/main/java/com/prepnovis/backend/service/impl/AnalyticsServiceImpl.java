@@ -139,7 +139,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
             List<PracticeSessionQuestion> questions =
                     practiceSessionQuestionRepository
-                            .findByPracticeSessionId(session.getId());
+                            .findByPracticeSessionIdOrderByQuestionOrderAsc(session.getId());
 
             int assignedQuestions = questions.size();
 

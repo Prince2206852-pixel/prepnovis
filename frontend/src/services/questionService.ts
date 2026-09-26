@@ -15,6 +15,10 @@ export async function getQuestions(
   params.set("page", String(filters.page ?? 0));
   params.set("size", String(filters.size ?? 10));
 
+  if (filters.search?.trim()) {
+    params.set("search", filters.search.trim());
+  }
+
   if (filters.category?.trim()) {
     params.set("category", filters.category.trim());
   }

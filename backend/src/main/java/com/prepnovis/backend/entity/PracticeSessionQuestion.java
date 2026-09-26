@@ -21,6 +21,9 @@ public class PracticeSessionQuestion extends BaseEntity {
     @JoinColumn(name = "question_id")
     private Question question;
 
+    @Column(name = "question_order", nullable = false)
+    private Integer questionOrder;
+
     @Column(length = 2000)
     private String mockQuestionText;
 
@@ -44,7 +47,6 @@ public class PracticeSessionQuestion extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String improvements;
 
-
     public PracticeSession getPracticeSession() {
         return practiceSession;
     }
@@ -59,6 +61,30 @@ public class PracticeSessionQuestion extends BaseEntity {
 
     public void setQuestion(Question question) {
         this.question = question;
+    }
+
+    public Integer getQuestionOrder() {
+        return questionOrder;
+    }
+
+    public void setQuestionOrder(Integer questionOrder) {
+        this.questionOrder = questionOrder;
+    }
+
+    public String getMockQuestionText() {
+        return mockQuestionText;
+    }
+
+    public void setMockQuestionText(String mockQuestionText) {
+        this.mockQuestionText = mockQuestionText;
+    }
+
+    public String getMockReferenceAnswer() {
+        return mockReferenceAnswer;
+    }
+
+    public void setMockReferenceAnswer(String mockReferenceAnswer) {
+        this.mockReferenceAnswer = mockReferenceAnswer;
     }
 
     public String getUserAnswer() {
@@ -108,21 +134,4 @@ public class PracticeSessionQuestion extends BaseEntity {
     public void setImprovements(String improvements) {
         this.improvements = improvements;
     }
-
-    public String getMockQuestionText() {
-    return mockQuestionText;
-    }
-
-    public void setMockQuestionText(String mockQuestionText) {
-    this.mockQuestionText = mockQuestionText;
-    }
-
-    public String getMockReferenceAnswer() {
-    return mockReferenceAnswer;
-    }
-
-    public void setMockReferenceAnswer(String mockReferenceAnswer) {
-    this.mockReferenceAnswer = mockReferenceAnswer;
-    }
-
 }

@@ -35,6 +35,9 @@ public class User extends BaseEntity {
     @Column(name = "email_verified", nullable = false)
     private boolean emailVerified = false;
 
+    @Column(name = "next_question_number", nullable = false)
+    private Long nextQuestionNumber = 1L;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;
@@ -85,6 +88,14 @@ public class User extends BaseEntity {
 
     public void setEmailVerified(boolean emailVerified) {
         this.emailVerified = emailVerified;
+    }
+
+    public Long getNextQuestionNumber() {
+        return nextQuestionNumber;
+    }
+
+    public void setNextQuestionNumber(Long nextQuestionNumber) {
+        this.nextQuestionNumber = nextQuestionNumber;
     }
 
     public Role getRole() {

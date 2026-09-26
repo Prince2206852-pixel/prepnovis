@@ -91,7 +91,15 @@ export default function SavedQuestionsPage() {
     useState<PageResponse<Question> | null>(null);
 
   const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState<10 | 20>(10);
 
+  /*
+   * Draft filter values.
+   *
+   * These are what the user is currently typing/selecting.
+   * We do NOT call the backend on every keystroke.
+   */
+  const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
   const [topic, setTopic] = useState("");
 
@@ -99,6 +107,21 @@ export default function SavedQuestionsPage() {
     useState<DifficultyLevel | "">("");
 
   const [questionType, setQuestionType] =
+    useState<QuestionType | "">("");
+
+  /*
+   * Applied filter values.
+   *
+   * These are sent to the backend only after Search/Apply is clicked.
+   */
+  const [appliedSearch, setAppliedSearch] = useState("");
+  const [appliedCategory, setAppliedCategory] = useState("");
+  const [appliedTopic, setAppliedTopic] = useState("");
+
+  const [appliedDifficultyLevel, setAppliedDifficultyLevel] =
+    useState<DifficultyLevel | "">("");
+
+  const [appliedQuestionType, setAppliedQuestionType] =
     useState<QuestionType | "">("");
 
   const [loading, setLoading] = useState(true);
@@ -134,11 +157,14 @@ export default function SavedQuestionsPage() {
     try {
       const response = await getQuestions({
         page,
-        size: 10,
-        category: category || undefined,
-        topic: topic || undefined,
-        difficultyLevel: difficultyLevel || undefined,
-        questionType: questionType || undefined,
+        size: pageSize,
+        search: appliedSearch.trim() || undefined,
+        category: appliedCategory.trim() || undefined,
+        topic: appliedTopic.trim() || undefined,
+        difficultyLevel:
+          appliedDifficultyLevel || undefined,
+        questionType:
+          appliedQuestionType || undefined,
       });
 
       setQuestions(response);
@@ -153,40 +179,51 @@ export default function SavedQuestionsPage() {
     }
   }, [
     page,
-    category,
-    topic,
-    difficultyLevel,
-    questionType,
+    pageSize,
+    appliedSearch,
+    appliedCategory,
+    appliedTopic,
+    appliedDifficultyLevel,
+    appliedQuestionType,
   ]);
 
   useEffect(() => {
-  const timeoutId = window.setTimeout(() => {
-    void loadQuestions();
-  }, 0);
+    const timeoutId = window.setTimeout(() => {
+      void loadQuestions();
+    }, 0);
 
-  return () => {
-    window.clearTimeout(timeoutId);
-  };
-}, [loadQuestions]);
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [loadQuestions]);
 
   function handleFilterSubmit(
     event: FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault();
 
-    if (page !== 0) {
-      setPage(0);
-      return;
-    }
+    setAppliedSearch(search.trim());
+    setAppliedCategory(category.trim());
+    setAppliedTopic(topic.trim());
+    setAppliedDifficultyLevel(difficultyLevel);
+    setAppliedQuestionType(questionType);
 
-    loadQuestions();
+    setPage(0);
   }
 
   function clearFilters() {
+    setSearch("");
     setCategory("");
     setTopic("");
     setDifficultyLevel("");
     setQuestionType("");
+
+    setAppliedSearch("");
+    setAppliedCategory("");
+    setAppliedTopic("");
+    setAppliedDifficultyLevel("");
+    setAppliedQuestionType("");
+
     setPage(0);
   }
 
@@ -256,6 +293,8 @@ export default function SavedQuestionsPage() {
     };
 
     try {
+      const wasEditing = editingQuestionId !== null;
+
       if (editingQuestionId) {
         await updateQuestion(editingQuestionId, request);
       } else {
@@ -265,8 +304,16 @@ export default function SavedQuestionsPage() {
       setShowQuestionModal(false);
       resetQuestionForm();
 
-      if (!editingQuestionId && page !== 0) {
-        setPage(0);
+      /*
+       * Questions are sorted by permanent question number.
+       * A newly created question receives the next number, so it
+       * belongs at the end rather than forcing the user to page 1.
+       *
+       * Reload the current page for now. If the current page is no
+       * longer valid after a delete, delete handling corrects it.
+       */
+      if (wasEditing) {
+        await loadQuestions();
       } else {
         await loadQuestions();
       }
@@ -360,6 +407,30 @@ export default function SavedQuestionsPage() {
     }
   }
 
+  function getVisiblePageNumbers() {
+    if (!questions || questions.totalPages <= 1) {
+      return [];
+    }
+
+    const totalPages = questions.totalPages;
+    const currentPage = questions.page;
+
+    let start = Math.max(0, currentPage - 2);
+    const end = Math.min(totalPages - 1, start + 4);
+
+    if (end - start < 4) {
+      start = Math.max(0, end - 4);
+    }
+
+    const pages: number[] = [];
+
+    for (let i = start; i <= end; i += 1) {
+      pages.push(i);
+    }
+
+    return pages;
+  }
+
   return (
     <AuthGuard>
       <div className="min-h-screen overflow-x-hidden bg-slate-50">
@@ -397,7 +468,7 @@ export default function SavedQuestionsPage() {
               </button>
             </section>
 
-            {/* FILTERS */}
+            {/* SEARCH + FILTERS */}
             <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
               <div className="mb-4 flex items-center gap-2">
                 <Filter
@@ -406,20 +477,32 @@ export default function SavedQuestionsPage() {
                 />
 
                 <h2 className="text-sm font-semibold text-slate-900">
-                  Filter questions
+                  Search & filter questions
                 </h2>
               </div>
 
               <form
                 onSubmit={handleFilterSubmit}
-                className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_0.8fr_0.9fr_auto]"
+                className="space-y-3"
               >
                 <div className="relative">
                   <Search
-                    size={16}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                    size={17}
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
                   />
 
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={(event) =>
+                      setSearch(event.target.value)
+                    }
+                    placeholder="Search question, category, topic, tag or #number..."
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_0.8fr_0.9fr_auto]">
                   <input
                     type="text"
                     value={category}
@@ -427,75 +510,77 @@ export default function SavedQuestionsPage() {
                       setCategory(event.target.value)
                     }
                     placeholder="Category"
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
                   />
-                </div>
 
-                <input
-                  type="text"
-                  value={topic}
-                  onChange={(event) =>
-                    setTopic(event.target.value)
-                  }
-                  placeholder="Topic"
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
-                />
+                  <input
+                    type="text"
+                    value={topic}
+                    onChange={(event) =>
+                      setTopic(event.target.value)
+                    }
+                    placeholder="Topic"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
+                  />
 
-                <select
-                  value={difficultyLevel}
-                  onChange={(event) =>
-                    setDifficultyLevel(
-                      event.target.value as
-                        | DifficultyLevel
-                        | "",
-                    )
-                  }
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
-                >
-                  {difficultyOptions.map((option) => (
-                    <option
-                      key={option.label}
-                      value={option.value}
-                    >
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-
-                <select
-                  value={questionType}
-                  onChange={(event) =>
-                    setQuestionType(
-                      event.target.value as QuestionType | "",
-                    )
-                  }
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
-                >
-                  {typeOptions.map((option) => (
-                    <option
-                      key={option.label}
-                      value={option.value}
-                    >
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-
-                <div className="flex gap-2 sm:col-span-2 xl:col-span-1">
-                  <button
-                    type="submit"
-                    className="flex-1 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 xl:flex-none"
+                  <select
+                    value={difficultyLevel}
+                    onChange={(event) =>
+                      setDifficultyLevel(
+                        event.target.value as
+                          | DifficultyLevel
+                          | "",
+                      )
+                    }
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
                   >
-                    Apply
-                  </button>
+                    {difficultyOptions.map((option) => (
+                      <option
+                        key={option.label}
+                        value={option.value}
+                      >
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
 
-                  <button
-                    type="button"
-                    onClick={clearFilters}
-                    className="flex-1 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 xl:flex-none"
+                  <select
+                    value={questionType}
+                    onChange={(event) =>
+                      setQuestionType(
+                        event.target.value as
+                          | QuestionType
+                          | "",
+                      )
+                    }
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
                   >
-                    Clear
-                  </button>
+                    {typeOptions.map((option) => (
+                      <option
+                        key={option.label}
+                        value={option.value}
+                      >
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+
+                  <div className="flex gap-2 sm:col-span-2 xl:col-span-1">
+                    <button
+                      type="submit"
+                      className="flex-1 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 xl:flex-none"
+                    >
+                      Search
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={clearFilters}
+                      className="flex-1 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 xl:flex-none"
+                    >
+                      Clear
+                    </button>
+                  </div>
                 </div>
               </form>
             </section>
@@ -508,7 +593,7 @@ export default function SavedQuestionsPage() {
 
             {/* QUESTIONS */}
             <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-              <div className="flex items-center justify-between border-b border-slate-100 px-4 py-5 sm:px-6">
+              <div className="flex flex-col gap-4 border-b border-slate-100 px-4 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                 <div>
                   <h2 className="font-semibold text-slate-900">
                     Your questions
@@ -523,10 +608,32 @@ export default function SavedQuestionsPage() {
                   </p>
                 </div>
 
-                <BookOpen
-                  size={20}
-                  className="text-indigo-500"
-                />
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2 text-xs font-medium text-slate-500">
+                    Show
+
+                    <select
+                      value={pageSize}
+                      onChange={(event) => {
+                        setPageSize(
+                          Number(event.target.value) as 10 | 20,
+                        );
+                        setPage(0);
+                      }}
+                      className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-semibold text-slate-700 outline-none transition focus:border-indigo-400"
+                    >
+                      <option value={10}>10</option>
+                      <option value={20}>20</option>
+                    </select>
+
+                    per page
+                  </label>
+
+                  <BookOpen
+                    size={20}
+                    className="text-indigo-500"
+                  />
+                </div>
               </div>
 
               {loading ? (
@@ -545,7 +652,7 @@ export default function SavedQuestionsPage() {
 
                   <button
                     type="button"
-                    onClick={loadQuestions}
+                    onClick={() => void loadQuestions()}
                     className="mt-4 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
                   >
                     Try again
@@ -563,18 +670,29 @@ export default function SavedQuestionsPage() {
                   </h3>
 
                   <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
-                    Add interview questions to build your personal
-                    question bank, or clear the current filters.
+                    No questions match your current search or
+                    filters. Clear the filters or add a new
+                    interview question.
                   </p>
 
-                  <button
-                    type="button"
-                    onClick={openAddModal}
-                    className="mt-5 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700"
-                  >
-                    <Plus size={17} />
-                    Add your first question
-                  </button>
+                  <div className="mt-5 flex flex-wrap justify-center gap-2">
+                    <button
+                      type="button"
+                      onClick={clearFilters}
+                      className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+                    >
+                      Clear filters
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={openAddModal}
+                      className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700"
+                    >
+                      <Plus size={17} />
+                      Add Question
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <>
@@ -587,6 +705,11 @@ export default function SavedQuestionsPage() {
                         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                           <div className="min-w-0 flex-1">
                             <div className="mb-3 flex flex-wrap gap-2">
+                              {/* Permanent user-facing question number */}
+                              <span className="rounded-full bg-violet-100 px-2.5 py-1 text-xs font-bold text-violet-700">
+                                #{question.questionNumber}
+                              </span>
+
                               <span className="max-w-full break-words rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-600">
                                 {question.category}
                               </span>
@@ -657,7 +780,8 @@ export default function SavedQuestionsPage() {
                               }
                               className="min-w-0 rounded-lg border border-indigo-100 bg-indigo-50 px-2 py-2.5 text-xs font-semibold text-indigo-600 transition hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-60 sm:px-4"
                             >
-                              {practicingQuestionId === question.id
+                              {practicingQuestionId ===
+                              question.id
                                 ? "Starting..."
                                 : "Practice"}
                             </button>
@@ -668,39 +792,62 @@ export default function SavedQuestionsPage() {
                   </div>
 
                   {/* PAGINATION */}
-                  <div className="flex flex-col gap-3 border-t border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-                    <p className="text-xs text-slate-500">
+                  <div className="flex flex-col gap-4 border-t border-slate-100 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="text-xs text-slate-500">
                       Page {questions.page + 1} of{" "}
                       {Math.max(questions.totalPages, 1)}
-                    </p>
-
-                    <div className="grid grid-cols-2 gap-2 sm:flex">
-                      <button
-                        type="button"
-                        disabled={questions.first}
-                        onClick={() =>
-                          setPage((current) =>
-                            Math.max(0, current - 1),
-                          )
-                        }
-                        className="flex items-center justify-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-                      >
-                        <ChevronLeft size={14} />
-                        Previous
-                      </button>
-
-                      <button
-                        type="button"
-                        disabled={questions.last}
-                        onClick={() =>
-                          setPage((current) => current + 1)
-                        }
-                        className="flex items-center justify-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-                      >
-                        Next
-                        <ChevronRight size={14} />
-                      </button>
+                      {" • "}
+                      {questions.totalElements} total
                     </div>
+
+                    {questions.totalPages > 1 && (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          disabled={questions.first}
+                          onClick={() =>
+                            setPage((current) =>
+                              Math.max(0, current - 1),
+                            )
+                          }
+                          className="flex items-center justify-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          <ChevronLeft size={14} />
+                          Previous
+                        </button>
+
+                        {getVisiblePageNumbers().map(
+                          (pageNumber) => (
+                            <button
+                              key={pageNumber}
+                              type="button"
+                              onClick={() =>
+                                setPage(pageNumber)
+                              }
+                              className={`h-8 min-w-8 rounded-lg px-2 text-xs font-semibold transition ${
+                                pageNumber === questions.page
+                                  ? "bg-indigo-600 text-white"
+                                  : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                              }`}
+                            >
+                              {pageNumber + 1}
+                            </button>
+                          ),
+                        )}
+
+                        <button
+                          type="button"
+                          disabled={questions.last}
+                          onClick={() =>
+                            setPage((current) => current + 1)
+                          }
+                          className="flex items-center justify-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          Next
+                          <ChevronRight size={14} />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </>
               )}
@@ -817,7 +964,8 @@ export default function SavedQuestionsPage() {
                         setQuestionForm((current) => ({
                           ...current,
                           questionType:
-                            event.target.value as QuestionType,
+                            event.target
+                              .value as QuestionType,
                         }))
                       }
                       className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
@@ -841,7 +989,9 @@ export default function SavedQuestionsPage() {
                     </label>
 
                     <select
-                      value={questionForm.difficultyLevel}
+                      value={
+                        questionForm.difficultyLevel
+                      }
                       onChange={(event) =>
                         setQuestionForm((current) => ({
                           ...current,
@@ -961,11 +1111,17 @@ export default function SavedQuestionsPage() {
                 </h2>
 
                 <p className="mt-2 text-sm leading-6 text-slate-500">
-                  This question will be permanently removed from your
-                  saved question bank. This action cannot be undone.
+                  This question will be permanently removed from
+                  your saved question bank. Its permanent question
+                  number #{questionToDelete.questionNumber} will not
+                  be reused.
                 </p>
 
                 <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="mb-1 text-xs font-bold text-indigo-600">
+                    #{questionToDelete.questionNumber}
+                  </p>
+
                   <p className="break-words text-sm font-semibold leading-6 text-slate-800">
                     {questionToDelete.questionText}
                   </p>

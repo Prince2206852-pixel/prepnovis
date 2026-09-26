@@ -10,7 +10,9 @@ import com.prepnovis.backend.entity.PracticeSessionQuestion;
 public interface PracticeSessionQuestionRepository
         extends JpaRepository<PracticeSessionQuestion, UUID> {
 
-    List<PracticeSessionQuestion> findByPracticeSessionId(UUID practiceSessionId);
+    List<PracticeSessionQuestion>
+            findByPracticeSessionIdOrderByQuestionOrderAsc(UUID practiceSessionId);
 
-    List<PracticeSessionQuestion> findByPracticeSessionUserId(UUID userId);
+    List<PracticeSessionQuestion>
+            findByPracticeSessionUserId(UUID userId);
 }

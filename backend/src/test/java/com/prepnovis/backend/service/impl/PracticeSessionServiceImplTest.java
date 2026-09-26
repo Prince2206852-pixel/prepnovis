@@ -305,7 +305,7 @@ class PracticeSessionServiceImplTest {
                 .thenReturn(Optional.of(session));
 
         when(practiceSessionQuestionRepository
-                .findByPracticeSessionId(sessionId))
+                .findByPracticeSessionIdOrderByQuestionOrderAsc(sessionId))
                 .thenReturn(List.of(sessionQuestion));
 
         PracticeSessionDetailResponse response =
@@ -377,7 +377,7 @@ class PracticeSessionServiceImplTest {
         );
 
         verify(practiceSessionQuestionRepository, never())
-                .findByPracticeSessionId(sessionId);
+                .findByPracticeSessionIdOrderByQuestionOrderAsc(sessionId);
     }
 
     @Test
@@ -666,7 +666,7 @@ class PracticeSessionServiceImplTest {
                 .thenReturn(Optional.of(session));
 
         when(practiceSessionQuestionRepository
-                .findByPracticeSessionId(sessionId))
+                .findByPracticeSessionIdOrderByQuestionOrderAsc(sessionId))
                 .thenReturn(List.of(
                         question1,
                         question2,
@@ -744,7 +744,7 @@ class PracticeSessionServiceImplTest {
                 .thenReturn(Optional.of(session));
 
         when(practiceSessionQuestionRepository
-                .findByPracticeSessionId(sessionId))
+                .findByPracticeSessionIdOrderByQuestionOrderAsc(sessionId))
                 .thenReturn(List.of(question1, question2));
 
         PracticeSessionResultResponse response =
@@ -790,7 +790,7 @@ class PracticeSessionServiceImplTest {
         );
 
         verify(practiceSessionQuestionRepository, never())
-                .findByPracticeSessionId(sessionId);
+                .findByPracticeSessionIdOrderByQuestionOrderAsc(sessionId);
     }
 
     private StartPracticeSessionRequest createStartRequest() {

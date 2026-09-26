@@ -48,6 +48,7 @@ class QuestionServiceImplTest {
         user.setId(UUID.randomUUID());
         user.setEmail(EMAIL);
         user.setFullName("Prince Kumar");
+        user.setNextQuestionNumber(1L);
     }
 
     @Test
@@ -55,7 +56,7 @@ class QuestionServiceImplTest {
 
         QuestionRequest request = createQuestionRequest();
 
-        when(userRepository.findByEmail(EMAIL))
+        when(userRepository.findByEmailForQuestionNumberUpdate(EMAIL))
                 .thenReturn(Optional.of(user));
 
         when(questionRepository.save(any(Question.class)))
@@ -98,8 +99,14 @@ class QuestionServiceImplTest {
 
         assertEquals("spring,di", response.getTags());
 
+        // Verify permanent per-user question numbering.
+        assertEquals(1L, response.getQuestionNumber());
+
+        // Counter should move forward after allocating #1.
+        assertEquals(2L, user.getNextQuestionNumber());
+
         verify(userRepository)
-                .findByEmail(EMAIL);
+                .findByEmailForQuestionNumberUpdate(EMAIL);
 
         verify(questionRepository)
                 .save(any(Question.class));
@@ -202,6 +209,7 @@ class QuestionServiceImplTest {
         Question existingQuestion = new Question();
         existingQuestion.setId(questionId);
         existingQuestion.setUser(user);
+        existingQuestion.setQuestionNumber(1L);
         existingQuestion.setQuestionText("Old question");
         existingQuestion.setAnswer("Old answer");
         existingQuestion.setCategory("Java");
@@ -263,6 +271,9 @@ class QuestionServiceImplTest {
                 "spring,di",
                 response.getTags()
         );
+
+        // Editing must never change the permanent question number.
+        assertEquals(1L, response.getQuestionNumber());
 
         verify(userRepository)
                 .findByEmail(EMAIL);
@@ -326,12 +337,15 @@ class QuestionServiceImplTest {
 
         request.setCategory("Java");
         request.setTopic("Spring Boot");
+
         request.setQuestionType(
                 QuestionType.TECHNICAL
         );
+
         request.setDifficultyLevel(
                 DifficultyLevel.MEDIUM
         );
+
         request.setTags("spring,di");
 
         return request;
@@ -343,6 +357,7 @@ class QuestionServiceImplTest {
 
         question.setId(questionId);
         question.setUser(user);
+        question.setQuestionNumber(1L);
 
         question.setQuestionText(
                 "What is dependency injection?"

@@ -9,6 +9,7 @@ import com.prepnovis.backend.entity.enums.QuestionType;
 public class QuestionResponse {
 
     private UUID id;
+    private Long questionNumber;
     private String questionText;
     private String answer;
     private String category;
@@ -28,6 +29,14 @@ public class QuestionResponse {
 
     public void setId(UUID id) {
         this.id = id;
+    }
+
+    public Long getQuestionNumber() {
+        return questionNumber;
+    }
+
+    public void setQuestionNumber(Long questionNumber) {
+        this.questionNumber = questionNumber;
     }
 
     public String getQuestionText() {

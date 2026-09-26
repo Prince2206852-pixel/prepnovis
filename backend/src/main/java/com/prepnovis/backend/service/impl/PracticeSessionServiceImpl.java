@@ -139,6 +139,7 @@ if (questionSource == QuestionSource.SAVED) {
 
         sessionQuestion.setPracticeSession(savedSession);
         sessionQuestion.setQuestion(question);
+        sessionQuestion.setQuestionOrder(1);
         sessionQuestion.setAnswered(false);
 
         practiceSessionQuestionRepository.save(sessionQuestion);
@@ -163,18 +164,21 @@ if (questionSource == QuestionSource.SAVED) {
                         .limit(request.getTotalQuestions())
                         .toList();
 
-        for (Question question : selectedQuestions) {
+        for (int i = 0; i < selectedQuestions.size(); i++) {
 
-            PracticeSessionQuestion sessionQuestion =
-                    new PracticeSessionQuestion();
+    Question question = selectedQuestions.get(i);
 
-            sessionQuestion.setPracticeSession(savedSession);
-            sessionQuestion.setQuestion(question);
-            sessionQuestion.setAnswered(false);
+    PracticeSessionQuestion sessionQuestion =
+            new PracticeSessionQuestion();
 
-            practiceSessionQuestionRepository
-                    .save(sessionQuestion);
-        }
+    sessionQuestion.setPracticeSession(savedSession);
+    sessionQuestion.setQuestion(question);
+    sessionQuestion.setQuestionOrder(i + 1);
+    sessionQuestion.setAnswered(false);
+
+    practiceSessionQuestionRepository
+            .save(sessionQuestion);
+}
 
         assignedQuestions = selectedQuestions.size();
     }
@@ -192,30 +196,30 @@ if (questionSource == QuestionSource.SAVED) {
                                 request.getTotalQuestions()
                         );
 
-        for (GeneratedMockQuestion mockQuestion
-                : mockQuestions) {
+        for (int i = 0; i < mockQuestions.size(); i++) {
 
-            PracticeSessionQuestion sessionQuestion =
-                    new PracticeSessionQuestion();
+    GeneratedMockQuestion mockQuestion = mockQuestions.get(i);
 
-            sessionQuestion.setPracticeSession(
-                    savedSession
-            );
+    PracticeSessionQuestion sessionQuestion =
+            new PracticeSessionQuestion();
 
-            sessionQuestion.setMockQuestionText(
-                    mockQuestion.getQuestionText()
-            );
+    sessionQuestion.setPracticeSession(savedSession);
 
-            sessionQuestion.setMockReferenceAnswer(
-                    mockQuestion.getReferenceAnswer()
-            );
+    sessionQuestion.setQuestionOrder(i + 1);
 
-            sessionQuestion.setAnswered(false);
+    sessionQuestion.setMockQuestionText(
+            mockQuestion.getQuestionText()
+    );
 
-            practiceSessionQuestionRepository
-                    .save(sessionQuestion);
-        }
+    sessionQuestion.setMockReferenceAnswer(
+            mockQuestion.getReferenceAnswer()
+    );
 
+    sessionQuestion.setAnswered(false);
+
+    practiceSessionQuestionRepository
+            .save(sessionQuestion);
+}
         assignedQuestions =
                 mockQuestions.size();
     }
@@ -271,7 +275,7 @@ public PracticeSessionDetailResponse getSessionDetails(
 
     List<PracticeSessionQuestion> sessionQuestions =
             practiceSessionQuestionRepository
-                    .findByPracticeSessionId(sessionId);
+                    .findByPracticeSessionIdOrderByQuestionOrderAsc(sessionId);
 
     List<PracticeSessionQuestionResponse> questionResponses =
         sessionQuestions.stream()
@@ -629,7 +633,7 @@ public PracticeSessionResultResponse completeSession(
     // Step 3: Get assigned questions
     List<PracticeSessionQuestion> sessionQuestions =
             practiceSessionQuestionRepository
-                    .findByPracticeSessionId(sessionId);
+                    .findByPracticeSessionIdOrderByQuestionOrderAsc(sessionId);
 
     int assignedQuestions = sessionQuestions.size();
 
@@ -708,7 +712,7 @@ public PracticeSessionResultResponse getSessionResult(
     // Step 3: Get assigned questions
     List<PracticeSessionQuestion> sessionQuestions =
             practiceSessionQuestionRepository
-                    .findByPracticeSessionId(sessionId);
+                    .findByPracticeSessionIdOrderByQuestionOrderAsc(sessionId);
 
     int assignedQuestions = sessionQuestions.size();
 

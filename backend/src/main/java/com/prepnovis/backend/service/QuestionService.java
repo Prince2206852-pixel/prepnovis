@@ -19,6 +19,7 @@ public interface QuestionService {
             String email,
             int page,
             int size,
+            String search,
             String category,
             String topic,
             DifficultyLevel difficultyLevel,

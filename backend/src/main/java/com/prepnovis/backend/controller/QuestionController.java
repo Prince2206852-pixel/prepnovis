@@ -28,7 +28,7 @@ import jakarta.validation.Valid;
 
 @Tag(
         name = "Questions",
-        description = "APIs for creating, viewing, filtering, updating and deleting saved interview questions."
+        description = "APIs for creating, viewing, searching, filtering, updating and deleting saved interview questions."
 )
 @RestController
 @RequestMapping("/api/v1/questions")
@@ -64,12 +64,13 @@ public class QuestionController {
 
     @Operation(
             summary = "Get saved questions",
-            description = "Returns saved interview questions with pagination and optional filters."
+            description = "Returns saved interview questions with pagination, search and optional filters."
     )
     @GetMapping
     public ResponseEntity<PageResponse<QuestionResponse>> getAllQuestions(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String search,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String topic,
             @RequestParam(required = false) DifficultyLevel difficultyLevel,
@@ -93,6 +94,7 @@ public class QuestionController {
                         principal.getName(),
                         page,
                         size,
+                        search,
                         category,
                         topic,
                         difficultyLevel,
@@ -120,7 +122,7 @@ public class QuestionController {
 
     @Operation(
             summary = "Update a saved question",
-            description = "Updates an existing saved interview question."
+            description = "Updates an existing saved interview question without changing its permanent question number."
     )
     @PutMapping("/{id}")
     public ResponseEntity<QuestionResponse> updateQuestion(
@@ -139,7 +141,7 @@ public class QuestionController {
 
     @Operation(
             summary = "Delete a saved question",
-            description = "Deletes an existing saved interview question."
+            description = "Deletes an existing saved interview question. Other saved question numbers are not changed."
     )
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteQuestion(

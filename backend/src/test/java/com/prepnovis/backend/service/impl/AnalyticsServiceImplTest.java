@@ -338,7 +338,7 @@ class AnalyticsServiceImplTest {
                 .thenReturn(List.of(session));
 
         when(practiceSessionQuestionRepository
-                .findByPracticeSessionId(session.getId()))
+                .findByPracticeSessionIdOrderByQuestionOrderAsc(session.getId()))
                 .thenReturn(List.of(
                         question1,
                         question2,

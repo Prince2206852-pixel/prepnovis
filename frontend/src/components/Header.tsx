@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Search } from "lucide-react";
+import { Bell } from "lucide-react";
 
 import { getAuthUser } from "@/lib/auth";
 
@@ -30,16 +30,6 @@ export default function Header() {
       </div>
 
       <div className="flex shrink-0 items-center gap-2 sm:gap-3 lg:gap-4">
-        <div className="hidden items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 xl:flex">
-          <Search size={18} className="text-slate-400" />
-
-          <input
-            type="text"
-            placeholder="Search..."
-            className="w-40 bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
-          />
-        </div>
-
         <button
           type="button"
           aria-label="Notifications"

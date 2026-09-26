@@ -11,6 +11,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
+
 public class StartPracticeSessionRequest {
 
     @NotBlank(message = "Category is required")
@@ -31,6 +32,7 @@ public class StartPracticeSessionRequest {
 
     private QuestionSource questionSource;
     private UUID questionId;
+   
 
     public StartPracticeSessionRequest() {
     }
