@@ -6,9 +6,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -39,20 +39,18 @@ public class SecurityConfig {
     private String allowedOrigins;
 
     public SecurityConfig(
-        CustomUserDetailsService customUserDetailsService,
-        JwtAuthenticationFilter jwtAuthenticationFilter,
-        RateLimitFilter rateLimitFilter,
-        CustomAuthenticationEntryPoint customAuthenticationEntryPoint,
-        CustomAccessDeniedHandler customAccessDeniedHandler) {
+            CustomUserDetailsService customUserDetailsService,
+            JwtAuthenticationFilter jwtAuthenticationFilter,
+            RateLimitFilter rateLimitFilter,
+            CustomAuthenticationEntryPoint customAuthenticationEntryPoint,
+            CustomAccessDeniedHandler customAccessDeniedHandler) {
 
-    this.customUserDetailsService = customUserDetailsService;
-    this.jwtAuthenticationFilter = jwtAuthenticationFilter;
-    this.rateLimitFilter = rateLimitFilter;
-    this.customAuthenticationEntryPoint =
-            customAuthenticationEntryPoint;
-    this.customAccessDeniedHandler =
-            customAccessDeniedHandler;
-}
+        this.customUserDetailsService = customUserDetailsService;
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.rateLimitFilter = rateLimitFilter;
+        this.customAuthenticationEntryPoint = customAuthenticationEntryPoint;
+        this.customAccessDeniedHandler = customAccessDeniedHandler;
+    }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -72,10 +70,9 @@ public class SecurityConfig {
 
     @Bean
     public AuthenticationManager authenticationManager(
-            AuthenticationConfiguration configuration)
-            throws Exception {
+            DaoAuthenticationProvider authenticationProvider) {
 
-        return configuration.getAuthenticationManager();
+        return new ProviderManager(authenticationProvider);
     }
 
     @Bean
@@ -117,7 +114,8 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(
-            HttpSecurity http)
+            HttpSecurity http,
+            DaoAuthenticationProvider authenticationProvider)
             throws Exception {
 
         http
@@ -148,25 +146,21 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/actuator/health",
-                                "/actuator/info",
-                               
-                                "/actuator/prometheus"
+                                "/actuator/info"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
 
-                .authenticationProvider(
-                        authenticationProvider()
+                .authenticationProvider(authenticationProvider)
+
+                .addFilterBefore(
+                        rateLimitFilter,
+                        UsernamePasswordAuthenticationFilter.class
                 )
 
                 .addFilterBefore(
-                  rateLimitFilter,
-                  UsernamePasswordAuthenticationFilter.class
-                )
-
-                .addFilterBefore(
-                  jwtAuthenticationFilter,
-                  UsernamePasswordAuthenticationFilter.class
+                        jwtAuthenticationFilter,
+                        UsernamePasswordAuthenticationFilter.class
                 );
 
         return http.build();

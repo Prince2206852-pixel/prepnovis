@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.prepnovis.backend.dto.response.AnalyticsDashboardResponse;
 import com.prepnovis.backend.dto.response.PracticeSessionResultResponse;
@@ -36,6 +37,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     @Cacheable(value = "analyticsDashboard", key = "#email")
     public AnalyticsDashboardResponse getDashboard(String email) {
 
@@ -71,24 +73,24 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         int totalQuestionsAnswered = answeredQuestions.size();
 
         List<PracticeSessionQuestion> savedAnsweredQuestions =
-        answeredQuestions.stream()
-                .filter(question ->
-                        question.getPracticeSession().getQuestionSource()
-                                == QuestionSource.SAVED)
-                .toList();
+                answeredQuestions.stream()
+                        .filter(question ->
+                                question.getPracticeSession().getQuestionSource()
+                                        == QuestionSource.SAVED)
+                        .toList();
 
         List<PracticeSessionQuestion> prepNovisMockAnsweredQuestions =
                 answeredQuestions.stream()
-                .filter(question ->
-                        question.getPracticeSession().getQuestionSource()
-                                == QuestionSource.PREPNOVIS_MOCK)
-                .toList();
+                        .filter(question ->
+                                question.getPracticeSession().getQuestionSource()
+                                        == QuestionSource.PREPNOVIS_MOCK)
+                        .toList();
 
         int savedQuestionsAnswered =
-        savedAnsweredQuestions.size();
+                savedAnsweredQuestions.size();
 
         int prepNovisMockQuestionsAnswered =
-        prepNovisMockAnsweredQuestions.size();
+                prepNovisMockAnsweredQuestions.size();
 
         // Step 7: Calculate average score
         double averageScore = answeredQuestions.stream()
@@ -98,27 +100,27 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 .orElse(0.0);
 
         double savedQuestionsAverageScore =
-        savedAnsweredQuestions.stream()
-                .filter(question -> question.getScore() != null)
-                .mapToDouble(PracticeSessionQuestion::getScore)
-                .average()
-                .orElse(0.0);
+                savedAnsweredQuestions.stream()
+                        .filter(question -> question.getScore() != null)
+                        .mapToDouble(PracticeSessionQuestion::getScore)
+                        .average()
+                        .orElse(0.0);
 
         double prepNovisMockAverageScore =
-        prepNovisMockAnsweredQuestions.stream()
-                .filter(question -> question.getScore() != null)
-                .mapToDouble(PracticeSessionQuestion::getScore)
-                .average()
-                .orElse(0.0);
+                prepNovisMockAnsweredQuestions.stream()
+                        .filter(question -> question.getScore() != null)
+                        .mapToDouble(PracticeSessionQuestion::getScore)
+                        .average()
+                        .orElse(0.0);
 
         averageScore =
-        Math.round(averageScore * 100.0) / 100.0;
+                Math.round(averageScore * 100.0) / 100.0;
 
         savedQuestionsAverageScore =
-        Math.round(savedQuestionsAverageScore * 100.0) / 100.0;
+                Math.round(savedQuestionsAverageScore * 100.0) / 100.0;
 
         prepNovisMockAverageScore =
-        Math.round(prepNovisMockAverageScore * 100.0) / 100.0;        
+                Math.round(prepNovisMockAverageScore * 100.0) / 100.0;
 
         // Step 8: Calculate highest score
         double highestScore = answeredQuestions.stream()
@@ -139,7 +141,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
             List<PracticeSessionQuestion> questions =
                     practiceSessionQuestionRepository
-                            .findByPracticeSessionIdOrderByQuestionOrderAsc(session.getId());
+                            .findByPracticeSessionIdOrderByQuestionOrderAsc(
+                                    session.getId());
 
             int assignedQuestions = questions.size();
 
@@ -158,7 +161,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                     .orElse(0.0);
 
             sessionAverageScore =
-            Math.round(sessionAverageScore * 100.0) / 100.0;        
+                    Math.round(sessionAverageScore * 100.0) / 100.0;
 
             PracticeSessionResultResponse response =
                     new PracticeSessionResultResponse();
@@ -185,13 +188,13 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         dashboard.setTotalQuestionsAnswered(totalQuestionsAnswered);
         dashboard.setSavedQuestionsAnswered(savedQuestionsAnswered);
         dashboard.setPrepNovisMockQuestionsAnswered(
-        prepNovisMockQuestionsAnswered);
+                prepNovisMockQuestionsAnswered);
 
         dashboard.setAverageScore(averageScore);
         dashboard.setSavedQuestionsAverageScore(
-        savedQuestionsAverageScore);
+                savedQuestionsAverageScore);
         dashboard.setPrepNovisMockAverageScore(
-        prepNovisMockAverageScore);
+                prepNovisMockAverageScore);
 
         dashboard.setHighestScore(highestScore);
         dashboard.setRecentSessions(recentSessions);
