@@ -64,6 +64,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 .count();
 
         // Step 6: Get answered questions
+        //adding one comment
         List<PracticeSessionQuestion> answeredQuestions =
                 sessionQuestions.stream()
                         .filter(question ->
