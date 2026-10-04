@@ -18,6 +18,7 @@ FROM eclipse-temurin:21-jre
 WORKDIR /app
 
 COPY --from=build /app/target/*.jar app.jar
+COPY src/main/resources/certs/aiven-kafka-ca.pem /app/certs/aiven-kafka-ca.pem
 
 EXPOSE 8080
 

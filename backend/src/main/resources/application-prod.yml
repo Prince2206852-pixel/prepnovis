@@ -37,7 +37,7 @@ spring:
     bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
 
     ssl:
-      trust-store-location: classpath:certs/aiven-kafka-ca.pem
+      trust-store-location: file:/app/certs/aiven-kafka-ca.pem
       trust-store-type: PEM
 
     properties:
