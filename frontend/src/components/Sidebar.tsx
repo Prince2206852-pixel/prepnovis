@@ -11,7 +11,6 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
-  Settings,
   Target,
   X,
 } from "lucide-react";
@@ -102,14 +101,7 @@ function SidebarContent({
       </nav>
 
       <div className="border-t border-slate-800 pt-4">
-        <Link
-          href="/settings"
-          onClick={onClose}
-          className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-400 transition hover:bg-slate-900 hover:text-white"
-        >
-          <Settings size={19} className="shrink-0" />
-          <span>Settings</span>
-        </Link>
+       
 
         <button
           type="button"
