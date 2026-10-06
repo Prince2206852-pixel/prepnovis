@@ -1,0 +1,24 @@
+name: Keep Render Backend Alive
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Wake Render backend
+        run: |
+          curl --fail --silent --show-error 
+            https://prepnovis-backend.onrender.com/actuator/health
+
+      - name: Wait 20 seconds
+        run: sleep 20
+
+      - name: Verify Render backend
+        run: |
+          curl --fail --silent --show-error 
+            https://prepnovis-backend.onrender.com/actuator/health
