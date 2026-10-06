@@ -12,8 +12,9 @@ jobs:
     steps:
       - name: Wake and wait for Render backend
         run: |
-          for i in {1..15}; do
-            echo "Health check attempt ..."
+          for i in {1..30}; do
+            echo "Health check attempt  of 30..."
+
             status=$(curl -s -o /dev/null -w "%{http_code}" https://prepnovis-backend.onrender.com/actuator/health)
 
             if [ "$status" = "200" ]; then
@@ -25,10 +26,9 @@ jobs:
             sleep 20
           done
 
-          echo "Render backend did not become healthy within 5 minutes."
+          echo "Render backend did not become healthy within 10 minutes."
           exit 1
 
-      - name: Verify Render backend
+      - name: Final health verification
         run: |
-          sleep 20
           curl --fail --silent --show-error https://prepnovis-backend.onrender.com/actuator/health
