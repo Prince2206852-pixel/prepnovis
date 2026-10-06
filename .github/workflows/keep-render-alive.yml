@@ -11,14 +11,10 @@ jobs:
 
     steps:
       - name: Wake Render backend
-        run: |
-          curl --fail --silent --show-error 
-            https://prepnovis-backend.onrender.com/actuator/health
+        run: curl --fail --silent --show-error https://prepnovis-backend.onrender.com/actuator/health
 
       - name: Wait 20 seconds
         run: sleep 20
 
       - name: Verify Render backend
-        run: |
-          curl --fail --silent --show-error 
-            https://prepnovis-backend.onrender.com/actuator/health
+        run: curl --fail --silent --show-error https://prepnovis-backend.onrender.com/actuator/health
