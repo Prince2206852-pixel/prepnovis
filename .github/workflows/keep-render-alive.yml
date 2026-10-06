@@ -5,30 +5,32 @@ on:
     - cron: "*/10 * * * *"
   workflow_dispatch:
 
+concurrency:
+  group: render-keep-alive
+  cancel-in-progress: false
+
 jobs:
   keep-alive:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Wake and wait for Render backend
+      - name: Wake and monitor Render backend
         run: |
           for i in {1..30}; do
-            echo "Health check attempt  of 30..."
+            echo "Health check attempt $i of 30..."
 
             status=$(curl -s -o /dev/null -w "%{http_code}" https://prepnovis-backend.onrender.com/actuator/health)
+
+            echo "HTTP status: $status"
 
             if [ "$status" = "200" ]; then
               echo "Render backend is healthy."
               exit 0
             fi
 
-            echo "Backend returned HTTP . Waiting 20 seconds..."
+            echo "Backend is not ready. Waiting 20 seconds..."
             sleep 20
           done
 
           echo "Render backend did not become healthy within 10 minutes."
           exit 1
-
-      - name: Final health verification
-        run: |
-          curl --fail --silent --show-error https://prepnovis-backend.onrender.com/actuator/health
