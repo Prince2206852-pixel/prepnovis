@@ -10,11 +10,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Wake Render backend
-        run: curl --fail --silent --show-error https://prepnovis-backend.onrender.com/actuator/health
+      - name: Wake and wait for Render backend
+        run: |
+          for i in {1..15}; do
+            echo "Health check attempt ..."
+            status=$(curl -s -o /dev/null -w "%{http_code}" https://prepnovis-backend.onrender.com/actuator/health)
 
-      - name: Wait 20 seconds
-        run: sleep 20
+            if [ "$status" = "200" ]; then
+              echo "Render backend is healthy."
+              exit 0
+            fi
+
+            echo "Backend returned HTTP . Waiting 20 seconds..."
+            sleep 20
+          done
+
+          echo "Render backend did not become healthy within 5 minutes."
+          exit 1
 
       - name: Verify Render backend
-        run: curl --fail --silent --show-error https://prepnovis-backend.onrender.com/actuator/health
+        run: |
+          sleep 20
+          curl --fail --silent --show-error https://prepnovis-backend.onrender.com/actuator/health
