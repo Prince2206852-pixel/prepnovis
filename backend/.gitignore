@@ -32,7 +32,6 @@ build/
 ### VS Code ###
 .vscode/
 
-```gitignore
 ### Sensitive local and production configuration ###
 **/application-local.yml
 **/application-local.yaml
@@ -40,7 +39,6 @@ build/
 **/application-prod.yaml
 **/application-local.properties
 **/application-prod.properties
-```
 
 ### Environment variables ###
 .env
