@@ -32,13 +32,10 @@ build/
 ### VS Code ###
 .vscode/
 
-### Sensitive local and production configuration ###
+### Local configuration files ###
 **/application-local.yml
 **/application-local.yaml
-**/application-prod.yml
-**/application-prod.yaml
 **/application-local.properties
-**/application-prod.properties
 
 ### Environment variables ###
 .env
